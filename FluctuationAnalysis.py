@@ -16,46 +16,6 @@ class FluctuationAnalysis:
         self.std_path = settings_data["std_path"]
 
 
-    def get_interval(self, energy, myData, lower, upper):
-            intervalled_data = []
-            for k in range(myData.size):
-                if energy[k] >= lower and energy[k] <= upper:
-                    intervalled_data.append(myData[k])
-            intervalled_data = np.array(intervalled_data)
-            return intervalled_data
-
-    def autocorr(self, x, energy, full_data, lower, upper, *, print_cut = False):
-        h1 = self.get_interval(energy, full_data, lower, upper)
-        h2 = self.get_interval(energy, full_data, lower+x, upper+x)
-        c1 = 0
-        c2 = 0
-        while h1.size > h2.size:
-            c1 += 1
-            h1 = h1[:-1]
-        while h1.size < h2.size:
-            c2 += 1
-            h2 = h2[:-1]
-        if print_cut:
-            print("Percentage cut in Autocorrelation 1: ", c1/len(h1))
-            print("Percentage cut in Autocorrelation 2: ", c2/len(h2))
-        return np.mean(h1*h2)/(np.mean(h1)*np.mean(h2))
-
-    def lvl_dens(self, E, E_step, energy, full_data, sigma = None, alpha = None):
-            if sigma == None:
-                sigma = self.settings[self.Setting.sigma_parameter]
-            if alpha == None:
-                alpha = self.settings[self.Setting.alpha_parameter]
-            return 1/ ((self.autocorr(0, energy, full_data, E, E + E_step)-1)*2*sigma*np.sqrt(np.pi)/alpha)
-
-    def get_nld(self, spin_array_s):
-        return spin_array_s
-
-    def get_smooth(self, nld):
-        pd_data = pd.Series(nld)
-        fine = pd_data.rolling(window=self.settings[self.Setting.fine_binning], center=True).mean()
-        rough = pd_data.rolling(window=self.settings[self.Setting.rough_binning], center=True).mean()
-        return fine, rough
-
     def plot_nld(self, energy, nld, save_path, file_name = "myNLD.png"):
         plt.figure()
         plt.plot(energy, nld)
@@ -93,15 +53,6 @@ class FluctuationAnalysis:
         plt.savefig(save_path / "Autocorrelation" / file_name, dpi=300)
         plt.close()
 
-    def get_fa_density(self, E_start, E_end, E_step, energy, full_data):
-        E_int = np.arange(E_start, E_end, E_step)
-        n = len(E_int)
-        result = np.zeros((2,n))
-        for k in range(n):
-            result[0][k] = E_int[k]
-            result[1][k] = self.lvl_dens(E_int[k], E_step, energy, full_data)
-        return result
-
     def plot_comparison(self, E_int, fa_dens, energy, nld, save_path, file_name, *, new_figure = True, save_fig = True, c_val = 1):
         (save_path/"Comparison").mkdir(exist_ok=True)
         if new_figure:
@@ -117,19 +68,19 @@ class FluctuationAnalysis:
         if new_figure:
             plt.close()
 
-    def plot_fluctuation_analysis_spin(self, energy, result_s, save_path, *, file_name = "test", print_nld = True, print_smooth = True, print_stationary = True, print_autocorrelation = True, print_comparison = True):
+    def plot_fluctuation_analysis(self, energy, result, save_path, *, file_name = "test", print_nld = True, print_smooth = True, print_stationary = True, print_autocorrelation = True, print_comparison = True):
         save_path.mkdir(exist_ok=True)
         (save_path/"NLD_input").mkdir(exist_ok=True)
         (save_path/"Smoothing").mkdir(exist_ok=True)
         (save_path/"Stationary").mkdir(exist_ok=True)
         (save_path/"Autocorrelation").mkdir(exist_ok=True)
         (save_path/"Comparison").mkdir(exist_ok=True)
-        nld = result_s["nld"]
-        fine = result_s["fine"]
-        rough = result_s["rough"]
-        stationary = result_s["stationary"]
-        E_int = result_s["fin_energy_int"]
-        fa_dens = result_s["fa_dens"]
+        nld = result["nld"]
+        fine = result["fine"]
+        rough = result["rough"]
+        stationary = result["stationary"]
+        E_int = result["fin_energy_int"]
+        fa_dens = result["fa_dens"]
         if print_nld:
             self.plot_nld(energy, nld, save_path, file_name)
         if print_smooth:
@@ -141,29 +92,60 @@ class FluctuationAnalysis:
         if print_comparison:
             self.plot_comparison(E_int, fa_dens, energy, nld, save_path, file_name)
 
-    def plot_fluctuation_analysis(self, result, save_path, *, print_nld = True, print_smooth = True, print_stationary = True, print_autocorrelation = True, print_comparison = True):
+    def plot_fluctuation_analysis_all_spins(self, result, save_path, *, print_nld = True, print_smooth = True, print_stationary = True, print_autocorrelation = True, print_comparison = True):
         energy = result["energy"]
         for key in result.keys():
             if key != "energy":
-                self.plot_fluctuation_analysis_spin(energy, result[key], save_path, file_name = key, print_nld=print_nld, print_smooth=print_smooth, print_stationary=print_stationary, print_autocorrelation=print_autocorrelation, print_comparison=print_comparison)
+                self.plot_fluctuation_analysis(energy, result[key], save_path, file_name = key, print_nld=print_nld, print_smooth=print_smooth, print_stationary=print_stationary, print_autocorrelation=print_autocorrelation, print_comparison=print_comparison)
 
-    def fluctuation_analysis(self, energy, nld_data):
-        nld = self.get_nld(nld_data)
-        fine, rough = self.get_smooth(nld)
-        d_full = fine/rough
-        E_int, fa_dens = self.get_fa_density(self.settings[self.Setting.E_start], self.settings[self.Setting.E_end], self.settings[self.Setting.E_step], energy, d_full)
-        return {
-            "nld" : nld,
-            "fine" : fine,
-            "rough" : rough,
-            "stationary" : d_full,
-            "fin_energy_int" : E_int,
-            "fa_dens" : fa_dens
-        }
+    def get_nld(self, nld_data):
+        return nld_data
 
-    def run_simulation(self):
-        self.apply_settings()
-        return subprocess.run(["cmd", "/c", "root", r"C:\RAINIER\RAINIER.C"], capture_output=True, text=True, cwd=r"C:\RAINIER\sample_folder").stdout
+    def get_smooth(self, nld):
+        pd_data = pd.Series(nld)
+        fine = pd_data.rolling(window=self.settings[self.Setting.fine_binning], center=True).mean()
+        rough = pd_data.rolling(window=self.settings[self.Setting.rough_binning], center=True).mean()
+        return fine, rough
+
+    def get_interval(self, energy, myData, lower, upper):
+        intervalled_data = []
+        for k in range(myData.size):
+            if energy[k] >= lower and energy[k] <= upper:
+                intervalled_data.append(myData[k])
+        intervalled_data = np.array(intervalled_data)
+        return intervalled_data
+    
+    def autocorr(self, x, energy, full_data, lower, upper, *, print_cut = False):
+        h1 = self.get_interval(energy, full_data, lower, upper)
+        h2 = self.get_interval(energy, full_data, lower+x, upper+x)
+        c1 = 0
+        c2 = 0
+        while h1.size > h2.size:
+            c1 += 1
+            h1 = h1[:-1]
+        while h1.size < h2.size:
+            c2 += 1
+            h2 = h2[:-1]
+        if print_cut:
+            print("Percentage cut in Autocorrelation 1: ", c1/len(h1))
+            print("Percentage cut in Autocorrelation 2: ", c2/len(h2))
+        return np.mean(h1*h2)/(np.mean(h1)*np.mean(h2))
+
+    def calc_lvl_dens(self, E, E_step, energy, full_data, sigma = None, alpha = None):
+        if sigma == None:
+            sigma = self.settings[self.Setting.sigma_parameter]
+        if alpha == None:
+            alpha = self.settings[self.Setting.alpha_parameter]
+        return 1/ ((self.autocorr(0, energy, full_data, E, E + E_step)-1)*2*sigma*np.sqrt(np.pi)/alpha)
+
+    def get_fa_density(self, E_start, E_end, E_step, energy, full_data):
+        E_int = np.arange(E_start, E_end, E_step)
+        n = len(E_int)
+        result = np.zeros((2,n))
+        for k in range(n):
+            result[0][k] = E_int[k]
+            result[1][k] = self.calc_lvl_dens(E_int[k], E_step, energy, full_data)
+        return result
 
     def get_level_data(self, run):
         cut = run.find("More levels exist at higher spins")
@@ -212,13 +194,6 @@ class FluctuationAnalysis:
         spin_array = spin_array.T
         return (energy,spin_array)
 
-    def fluctuation_analysis_all_spins(self, run):
-        energy, spin_array = self.get_level_arrays(self.get_level_data(run))
-        result = {"energy" : energy}
-        for s in range(spin_array.shape[0]):
-            result[str(s)] = self.fluctuation_analysis(energy, spin_array[s])
-        return result
-
     def replace_val(self, text, definer, new_val):
         pos = text.find(definer)
         start_val = pos + len(definer)
@@ -234,13 +209,38 @@ class FluctuationAnalysis:
             return text
 
     def apply_settings(self):
-        with open(r"C:\RAINIER\sample_folder\settings.h", "r") as f:
+        with open(self.rainier_sample_folder / "settings.h", "r") as f:
             text = f.read()
-        with open(r"C:\RAINIER\sample_folder\settings.h", "w") as f:
+        with open(self.rainier_sample_folder / "settings.h", "w") as f:
             for key in self.settings.keys():
                 if key in self.value_setting:
                     text = self.replace_val(text, self.setting_definer[key], self.settings[key])
             f.write(text)
+
+    def fluctuation_analysis(self, energy, nld_data):
+        nld = self.get_nld(nld_data)
+        fine, rough = self.get_smooth(nld)
+        d_full = fine/rough
+        E_int, fa_dens = self.get_fa_density(self.settings[self.Setting.E_start], self.settings[self.Setting.E_end], self.settings[self.Setting.E_step], energy, d_full)
+        return {
+            "nld" : nld,
+            "fine" : fine,
+            "rough" : rough,
+            "stationary" : d_full,
+            "fin_energy_int" : E_int,
+            "fa_dens" : fa_dens
+        }
+
+    def run_simulation(self):
+        self.apply_settings()
+        return subprocess.run(["cmd", "/c", "root", r"C:\RAINIER\RAINIER.C"], capture_output=True, text=True, cwd=r"C:\RAINIER\sample_folder").stdout
+
+    def fluctuation_analysis_all_spins(self, run):
+        energy, spin_array = self.get_level_arrays(self.get_level_data(run))
+        result = {"energy" : energy}
+        for s in range(spin_array.shape[0]):
+            result[str(s)] = self.fluctuation_analysis(energy, spin_array[s])
+        return result
 
     def sliding_window_spin(self, run, E_shift, s):
         folder_path = self.std_path / "sliding_window"
