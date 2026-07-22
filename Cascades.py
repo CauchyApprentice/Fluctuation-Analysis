@@ -3,11 +3,11 @@ from enum import IntEnum, auto
 import pandas as pd
 import matplotlib.pyplot as plt
 import uproot
-from Settings import Settings
+from Settings import Setting, Settings
 
 class Cascades:
     def __init__(self):
-        self.Setting = Settings.Setting
+        self.Setting = Setting
         self.settings = Settings.settings
         self.setting_definer = Settings.setting_definer
         self.value_setting = Settings.value_setting

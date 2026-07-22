@@ -3,11 +3,11 @@ from enum import IntEnum, auto
 import pandas as pd
 import matplotlib.pyplot as plt
 import subprocess
-from Settings import Settings
+from Settings import Settings, Setting
 
 class FluctuationAnalysis:
     def __init__(self):
-        self.Setting = Settings.Setting
+        self.Setting = Setting
         self.settings = Settings.settings
         self.setting_definer = Settings.setting_definer
         self.value_setting = Settings.value_setting
@@ -15,6 +15,7 @@ class FluctuationAnalysis:
         self.rainier_sample_folder = Settings.rainier_sample_folder
         self.this_dir = Settings.this_dir
         self.std_path = Settings.std_path
+        #AUS DER KLASSE RAUS MIT DENEN; EINFACH DRÜBER --> ALLE DINGER NOCHMAL ÄNDERN UNTEN
 
 
     def plot_nld(self, energy, nld, save_path, file_name = "myNLD.png"):
