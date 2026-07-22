@@ -3,17 +3,18 @@ from enum import IntEnum, auto
 import pandas as pd
 import matplotlib.pyplot as plt
 import uproot
+from Settings import Settings
 
 class Cascades:
-    def __init__(self, settings_data):
-        self.Setting = settings_data["Setting"]
-        self.settings = settings_data["settings"]
-        self.setting_definer = settings_data["setting_definer"]
-        self.value_setting = settings_data["value_setting"]
+    def __init__(self):
+        self.Setting = Settings.Setting
+        self.settings = Settings.settings
+        self.setting_definer = Settings.setting_definer
+        self.value_setting = Settings.value_setting
 
-        self.rainier_sample_folder = settings_data["rainier_sample_folder"]
-        self.this_dir = settings_data["this_dir"]
-        self.std_path = settings_data["std_path"]
+        self.rainier_sample_folder = Settings.rainier_sample_folder
+        self.this_dir = Settings.this_dir
+        self.std_path = Settings.std_path
 
     def get_cascades(self, save_path = None, file_name = "Run0001.root"):
         if save_path == None:
@@ -36,3 +37,5 @@ class Cascades:
             index = int(np.floor(ex/E_step))
             bin_counter[index] += 1
         return energy, bin_counter
+
+casc = Cascades()

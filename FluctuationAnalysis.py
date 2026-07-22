@@ -3,17 +3,18 @@ from enum import IntEnum, auto
 import pandas as pd
 import matplotlib.pyplot as plt
 import subprocess
+from Settings import Settings
 
 class FluctuationAnalysis:
-    def __init__(self, settings_data):
-        self.Setting = settings_data["Setting"]
-        self.settings = settings_data["settings"]
-        self.setting_definer = settings_data["setting_definer"]
-        self.value_setting = settings_data["value_setting"]
+    def __init__(self):
+        self.Setting = Settings.Setting
+        self.settings = Settings.settings
+        self.setting_definer = Settings.setting_definer
+        self.value_setting = Settings.value_setting
 
-        self.rainier_sample_folder = settings_data["rainier_sample_folder"]
-        self.this_dir = settings_data["this_dir"]
-        self.std_path = settings_data["std_path"]
+        self.rainier_sample_folder = Settings.rainier_sample_folder
+        self.this_dir = Settings.this_dir
+        self.std_path = Settings.std_path
 
 
     def plot_nld(self, energy, nld, save_path, file_name = "myNLD.png"):
@@ -266,3 +267,5 @@ class FluctuationAnalysis:
         plt.close()
         self.settings[self.Setting.E_start] = E_start_0
         self.settings[self.Setting.E_end] = E_end_0
+
+fluc = FluctuationAnalysis()
