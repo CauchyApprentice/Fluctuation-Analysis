@@ -68,7 +68,9 @@ class FluctuationAnalysis:
         if new_figure:
             plt.close()
 
-    def plot_fluctuation_analysis(self, energy, result, save_path, *, file_name = "test", print_nld = True, print_smooth = True, print_stationary = True, print_autocorrelation = True, print_comparison = True):
+    def plot_fluctuation_analysis(self, energy, result, *, save_path = None, file_name = "test", print_nld = True, print_smooth = True, print_stationary = True, print_autocorrelation = True, print_comparison = True):
+        if save_path == None:
+            save_path = self.std_path
         save_path.mkdir(exist_ok=True)
         (save_path/"NLD_input").mkdir(exist_ok=True)
         (save_path/"Smoothing").mkdir(exist_ok=True)
@@ -115,7 +117,7 @@ class FluctuationAnalysis:
         intervalled_data = np.array(intervalled_data)
         return intervalled_data
     
-    def autocorr(self, x, energy, full_data, lower, upper, *, print_cut = False):
+    def autocorr(self, x, energy, full_data, lower, upper, *, print_cut = True):
         h1 = self.get_interval(energy, full_data, lower, upper)
         h2 = self.get_interval(energy, full_data, lower+x, upper+x)
         c1 = 0
@@ -127,8 +129,10 @@ class FluctuationAnalysis:
             c2 += 1
             h2 = h2[:-1]
         if print_cut:
-            print("Percentage cut in Autocorrelation 1: ", c1/len(h1))
-            print("Percentage cut in Autocorrelation 2: ", c2/len(h2))
+            if c1 > 1:
+                print("Autocorrelation 1: cut", c1, " out of ",len(h1))
+            if c2 > 1:
+                print("Autocorrelation 1: cut", c2, " out of ",len(h2))
         return np.mean(h1*h2)/(np.mean(h1)*np.mean(h2))
 
     def calc_lvl_dens(self, E, E_step, energy, full_data, sigma = None, alpha = None):

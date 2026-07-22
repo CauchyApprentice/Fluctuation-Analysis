@@ -20,7 +20,7 @@ settings = {
     Setting.g_nZ : 32,
     Setting.g_nAMass : 76,
     Setting.g_nConEBin : 600,
-    Setting.g_nEvent : "1e3",
+    Setting.g_nEvent : "3e5",
     Setting.alpha_parameter : 0.45,
     Setting.sigma_parameter : 5,
     Setting.fine_binning : 4,
