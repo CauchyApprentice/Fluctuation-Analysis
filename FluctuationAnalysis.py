@@ -153,6 +153,9 @@ class FluctuationAnalysis:
             result[1][k] = self.calc_lvl_dens(E_int[k], E_step, energy, full_data)
         return result
 
+    def get_energy_and_true_nld(self, run):
+        return self.get_level_arrays(self.get_level_data(run))
+
     def get_level_data(self, run):
         cut = run.find("More levels exist at higher spins")
         #print(run[cut:])
