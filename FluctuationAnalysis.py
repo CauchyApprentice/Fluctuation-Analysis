@@ -153,78 +153,13 @@ class FluctuationAnalysis:
             result[1][k] = self.calc_lvl_dens(E_int[k], E_step, energy, full_data)
         return result
 
-    def get_energy_and_true_nld(self, run):
-        return self.get_level_arrays(self.get_level_data(run))
 
-    def get_level_data(self, run):
-        cut = run.find("More levels exist at higher spins")
-        #print(run[cut:])
-        cut2 = run[cut:].find("E(MeV)")
-        first = run[cut+cut2+10:]
-        cut3 = first.find("Total Number of Levels")
-        second = first[:cut3]
-        return second
 
-    def get_level_arrays(self, text):
-        energy = []
-        spin_array = []
-        for k in range(len(text)):
-            ch = text[k]
-            if ch != '.':
-                continue
-            a = 1
-            while text[k-(a+1)].isdigit():
-                a = a+1
-            num = float(text[k-a:k+4])
-            energy.append(num)
-            l = 20
-            b = 8
-            spin_array_one_energy = [[] for x in range(20)]
-            while l > 0:
-                if text[k+b] == " ":
-                    b = b+1
-                c = 1
-                #print("b:",b)
-                while text[k+b+c] != "|":
-                    c = c+1
-                #print("c:",c)
-                spin_val = text[k+b:k+b+c]
-                #print(spin_val)
-                spin_val = spin_val.replace("\n", "")
-                spin_array_one_energy[l-1] = int(spin_val)
-                #print("spin"+str(20-l)+":"+spin_val)
-                #print("Spin"+str(19-l)+":"+text[k+b:k+b+c+2])
-                b = b+c+1
-                l = l-1
-            #print(spin_array_one_energy)
-            spin_array.append(spin_array_one_energy)
-        energy = np.array(energy)
-        spin_array = np.array(spin_array)
-        spin_array = spin_array.T
-        return (energy,spin_array)
+    
 
-    def replace_val(self, text, definer, new_val):
-        pos = text.find(definer)
-        start_val = pos + len(definer)
-        end_val = start_val
-        while text[end_val] != ";":
-            end_val = end_val + 1
-        val = text[start_val:end_val]
-        if val != str(new_val):
-            print("(changed) "+text[pos:start_val] + str(new_val))
-            return text[:start_val] + str(new_val) + text[end_val:]
-        else:
-            print(text[pos:end_val])
-            return text
+    
 
-    def apply_settings(self):
-        with open(self.rainier_sample_folder / "settings.h", "r") as f:
-            text = f.read()
-        with open(self.rainier_sample_folder / "settings.h", "w") as f:
-            for key in self.settings.keys():
-                if key in self.value_setting:
-                    text = self.replace_val(text, self.setting_definer[key], self.settings[key])
-            f.write(text)
+
 
     def fluctuation_analysis(self, energy, nld_data):
         nld = self.get_nld(nld_data)
@@ -240,11 +175,7 @@ class FluctuationAnalysis:
             "fa_dens" : fa_dens
         }
 
-    def run_simulation(self):
-        self.apply_settings()
-        return subprocess.run(["cmd", "/c", "root", r"C:\RAINIER\RAINIER.C"], capture_output=True, text=True, cwd=r"C:\RAINIER\sample_folder").stdout
-
-    def fluctuation_analysis_all_spins(self, run):
+    def fluctuation_analysis_all_spins(self, run): #dont work rn since SimulationTool is being set up
         energy, spin_array = self.get_level_arrays(self.get_level_data(run))
         result = {"energy" : energy}
         for s in range(spin_array.shape[0]):

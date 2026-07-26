@@ -22,7 +22,7 @@ class SettingsClass:
             Setting.g_nZ : 32,
             Setting.g_nAMass : 76,
             Setting.g_nConEBin : 600,
-            Setting.g_nEvent : "3e5",
+            Setting.g_nEvent : "1e3",
             Setting.alpha_parameter : 0.45,
             Setting.sigma_parameter : 5,
             Setting.fine_binning : 4,
@@ -51,5 +51,30 @@ class SettingsClass:
         self.rainier_sample_folder = Path(r"C:\RAINIER\sample_folder")
         self.this_dir = self.rainier_sample_folder
         self.std_path = self.this_dir / "fluctuation_analysis"
+
+    def replace_val(self, text, definer, new_val, *, print_setting = True):
+        pos = text.find(definer)
+        start_val = pos + len(definer)
+        end_val = start_val
+        while text[end_val] != ";":
+            end_val = end_val + 1
+        val = text[start_val:end_val]
+        if val != str(new_val):
+            if print_setting:
+                print("(changed) "+text[pos:start_val] + str(new_val))
+            return text[:start_val] + str(new_val) + text[end_val:]
+        else:
+            if print_setting:
+                print(text[pos:end_val])
+            return text
+
+    def apply_settings(self, *, print_setting = True):
+        with open(self.rainier_sample_folder / "settings.h", "r") as f:
+            text = f.read()
+        with open(self.rainier_sample_folder / "settings.h", "w") as f:
+            for key in self.settings.keys():
+                if key in self.value_setting:
+                    text = self.replace_val(text, self.setting_definer[key], self.settings[key], print_setting=print_setting)
+            f.write(text)
 
 Settings = SettingsClass()
