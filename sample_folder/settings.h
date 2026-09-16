@@ -6,19 +6,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////// Run Settings ////////////////////////////////////////////
-const int g_nReal = 2; // number of realizations of nuclear level scheme
-const int g_nEvent = 0e0; // number of events per realization (and ExI in bExSpread)
-const int g_nEvUpdate = 1e2; // print progress to screen at this interval
-const int g_nEvSave = g_nEvent/1; // save checkpoint every now and then
+const int g_nReal = 1; // number of realizations of nuclear level scheme
+const int g_nEvent = 40000; // number of events per realization (and ExI in bExSpread)
+const int g_nEvUpdate = 60; // print progress to screen at this interval
+const int g_nEvSave = 10; // save checkpoint every now and then
 
 #define bSaveTree // to save cascades to a ROOT tree in the RunXXXX.root file
 
 ////////////////////// Discrete Settings ///////////////////////////////////////
 #define bPrintLvl // print both discrete and constructed lvl schemes
-const int g_nZ = 60; // proton number
-const int g_nAMass = 144; // proton + neutron number
-const int g_nDisLvlMax = 0; // only trust level scheme to here, sets ECrit
-
+const int g_nZ = 32; // proton number
+const int g_nAMass = 76; // proton + neutron number
+const int g_nDisLvlMax = 1; // only trust level scheme to here, sets ECrit
 const bool g_bIsEvenA = !(g_nAMass % 2);
 const int g_nDisLvlGamMax = g_nDisLvlMax; // max #gammas read for a discrete lvl from file
                                 // suggestion: g_nDisLvlMax
@@ -33,19 +32,15 @@ const TString slevels_file = "z060_edit.dat"; // might e.g. add missing half-lif
 #define bForceBinNum // else force bin spacing
 #ifdef bForceBinNum
 double g_dConESpac; // constructed E bin spacing
-const int g_nConEBin = 400; // number of energy bins in constructed scheme
+const int g_nConEBin = 7000; // number of energy bins in constructed scheme
 #else
-const double g_dConESpac = 0.01; // MeV; wont matter if forcing bin number
+const double g_dConESpac = 0.001; // MeV; wont matter if forcing bin number
 int g_nConEBin;
 #endif // bForceBinNum
 const int g_nConSpbMax = 21; // constructed # spin bins, small for light ion rxn
 
 ///// Level Density, LD, model (Underlying LD) /////
-// choose one, fill in corresponding parameters
-//#define bLD_BSFG // Back Shifted Fermi Gas model
-#define bLD_CTM // Constant Temperature Model
-//#define bLD_Table // external file with table of values
-//#define bLD_UsrDef // user defined
+#define bLD_CTM
 
 #ifdef bLD_Table
 #include "LDTable_GC.dat" // made for Gilbert and Cameron 56Fe, not 144Nd
@@ -197,11 +192,7 @@ const double g_dICCMin = g_dConESpac / 2.0; // uses 1st Ebin ICC val below this
 const double g_dICCMax = 1.0; // MeV; Uses last Ebin ICC value for higher E
 
 ////////////////////// Excitation Settings /////////////////////////////////////
-// choose one, fill in corresponding params:
-//#define bExSingle  // single population input
-//#define bExSelect // populate list of (Ex, J, pi) states
-//#define bExSpread  // populate from (eg. intrinsic) spin distribution for list of Ex
-#define bExFullRxn // populate according to input file
+#define bExFullRxn
 
 #ifdef bExSingle // single population input
 // similar to (n,g)
@@ -242,13 +233,17 @@ const double g_dJIWid = 0.5;
 #ifdef bExFullRxn // populate eg. according to TALYS output file
 // Randomly selects EJP bin from input file population distribution
 // if no level in corresponding bin, searches nearby E bins
-const double g_dExIMax = 7.0; // MeV; above max population energy
-const char popFile[] = "Ge76_pop.dat"; // made from TALYS "outpopulation y"
+//MARKER
+const double g_dExIMax = 6.9163; // MeV; above max population energy
+//MARKER
+const char popFile[] = "createdPopFile.dat"; // made from TALYS "outpopulation y"
 // make sure to match # of discrete bins. See ReadPopFile() bins + maxlevelstar + 1 = g_nExPopI
-const int g_nExPopI = 30; // bins 0-70; bins + maxlevelstar + 1 = g_nExPopI
+//MARKER
+const int g_nExPopI = 7000; // bins 0-70; bins + maxlevelstar + 1 = g_nExPopI
 const int g_nSpPopIBin = 10; // spins 0-9
-const double g_dExRes = 0.2; // excitation resolution on g_ah2ExEg
-#define bParPop_Equipar // file contains sum of parities only: J= 0, 1,...; otherwise J= 0-, 0+, ...
+//MARKER
+const double g_dExRes = 0.00098818402628947; // excitation resolution on g_ah2ExEg
+//#define bParPop_Equipar // file contains sum of parities only: J= 0, 1,...; otherwise J= 0-, 0+, ...
 #endif
 
 #ifdef bExSelect
