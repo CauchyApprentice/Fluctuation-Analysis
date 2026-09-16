@@ -138,7 +138,7 @@ class SettingsClass:
         }
 
         self.rainier_sample_folder = Path(r"C:\RAINIER\sample_folder")
-        self.this_dir = self.rainier_sample_folder
+        self.this_dir = Path(r"C:\Users\Raphael\Desktop\FluctuationAnalysis\sample_folder")
         self.std_path = self.this_dir / "fluctuation_analysis"
 
         self.folder_fluct_name = "fluct input"
