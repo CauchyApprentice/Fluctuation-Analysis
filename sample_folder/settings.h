@@ -7,7 +7,7 @@
 
 ////////////////////// Run Settings ////////////////////////////////////////////
 const int g_nReal = 1; // number of realizations of nuclear level scheme
-const int g_nEvent = 40000; // number of events per realization (and ExI in bExSpread)
+const int g_nEvent = 70000; // number of events per realization (and ExI in bExSpread)
 const int g_nEvUpdate = 60; // print progress to screen at this interval
 const int g_nEvSave = 10; // save checkpoint every now and then
 

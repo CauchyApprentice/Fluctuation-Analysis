@@ -13522,4 +13522,4 @@ Saving Progress
     30000 / 30000 processed
 
 Writing Histograms
-Time elapsed during RAINIER execution: 8.500e+02 sec
+Time elapsed during RAINIER execution: 7.830e+02 sec
