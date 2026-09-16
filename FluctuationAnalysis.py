@@ -8,6 +8,9 @@ from Settings import Settings, Setting, parameter
 from Func import func
 from dataclasses import dataclass
 from typing import Any
+from functools import singledispatchmethod
+from SimulationTool import Run
+from Extractor import extract
 
 class FaStep(IntEnum):
     fluct = auto()
@@ -266,6 +269,7 @@ class FluctuationAnalysis:
     def get_energy_width(self, energy):
         return np.mean(np.diff(energy))
 
+    @singledispatchmethod
     def fluctuation_analysis(self, energy, fluct_data, nld_energy, nld, *, E_step = None, slid_start = None, slid_end = None, slid_shift = None) -> FluctuationAnalysisResult:
         if slid_start == None:
             slid_start = parameter[Setting.slid_E_start]
@@ -293,6 +297,14 @@ class FluctuationAnalysis:
             E_int_array.append(E_int)
             fa_dens_array.append(fa_dens)
         return FluctuationAnalysisResult(energy,fluct_data,nld_energy,nld,fine,rough,d_full,E_int_array,fa_dens_array,parameter)
+
+    @fluctuation_analysis.register
+    def _(self, run: Run):
+        nld_energy, nld_dict = run.level_data
+        nld = nld_dict["-1"]
+        energy, fluct_data_dict = extract.get_fluct_data_spin(run,plot=False)
+        fluct_data = fluct_data_dict[-1]
+        return self.fluctuation_analysis(energy, fluct_data, nld_energy, nld)
 
     def iterate(self, energy, fluct_data, nld_energy, nld, param, param_range):
         param0 = parameter[param]
