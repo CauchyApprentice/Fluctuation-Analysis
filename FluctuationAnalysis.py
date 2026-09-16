@@ -190,12 +190,6 @@ class FluctuationAnalysis:
         self.plot = FluctuationAnalysisPlot()
 
 
-    def get_smooth_old(self, nld, fine_bin, rough_bin):
-        pd_data = pd.Series(nld)
-        fine = pd_data.rolling(window=fine_bin, center=True).mean()
-        rough = pd_data.rolling(window=rough_bin, center=True).mean()
-        return fine, rough
-
     def get_smooth(self, fluct_data, deltaE, sigma_fine, sigma_rough):
         np_data = np.array(fluct_data)
         fine = gaussian_filter(np_data, sigma=sigma_fine/deltaE)
