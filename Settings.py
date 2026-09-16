@@ -57,7 +57,7 @@ class SettingsClass:
             Setting.g_nEvent : 1,
             Setting.g_nConSpbMax : 21,
             Setting.g_nDisLvlMax : 1,
-            Setting.exp_resolution : 0.01,
+            Setting.exp_resolution : 0.002,
             Setting.g_dExIMax : self.Q_76Ga, #ONLY WORKS FOR THE bExFullRxn atm LOOK DEFINER
             Setting.g_dExRes : 0.00098818402628947, #same as above
             Setting.g_nExPopI : 7000, #same as above
@@ -73,7 +73,7 @@ class SettingsClass:
 
             Setting.exci_mode : EXCI.full_rxn,
 
-            Setting.alpha_parameter : 2.273,
+            Setting.alpha_parameter : 0.273, #with PT 2.273
             Setting.E_step : 0.5,
             Setting.fluct_bin : 7000,
 
