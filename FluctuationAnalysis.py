@@ -1,6 +1,5 @@
 import numpy as np
 from enum import IntEnum, auto
-import pandas as pd
 from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
 from pathlib import Path
