@@ -134,10 +134,21 @@ class SimTool:
         def __init__(self, sim):
             self.sim: SimTool = sim
 
-        def run(self) -> None:
-            if __name__ == "__main__":
-                with ProcessPoolExecutor(max_workers=10) as executor:
-                    executor.map(sim.run_simulation_events, 5000)
+        def run(self, *, events: int, max_workers: int = 10, save_path: Path = None) -> list[Run]:
+            if save_path is None:
+                save_path = Settings.std_path
+            partial_events = events // max_workers
+            save_folder = save_path / "PARALLEL"
+            save_folder.mkdir(exist_ok = True, parents=True)
+            with ProcessPoolExecutor(max_workers=max_workers) as executor:
+                futures = [executor.submit(
+                    sim.run_simulation_events_then_read,
+                    partial_events,
+                    save_path=save_folder,
+                    file_name=str(worker)
+                ) for worker in range(max_workers)]
+
+                result = [future.result() for future in futures]
 
     def iterate(self, param: Setting, param_range: list, *, save_path: Path = None) -> None:
         if save_path == None:

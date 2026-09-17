@@ -54,7 +54,7 @@ class SettingsClass:
             Setting.g_nZ : 32,
             Setting.g_nAMass : 76,
             Setting.g_nConEBin : 7000,
-            Setting.g_nEvent : 1,
+            Setting.g_nEvent : 1000,
             Setting.g_nConSpbMax : 21,
             Setting.g_nDisLvlMax : 1,
             Setting.exp_resolution : 0.002,
