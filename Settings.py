@@ -190,11 +190,11 @@ class SettingsClass:
             execution_path = self.root_file_folder
         if parameter_ref is None:
             parameter_ref = self.parameter
-        with open(self.settings_file_path, "r") as f:
+        with open(execution_path / "settings.h", "r") as f:
             text = f.read()
             if text == "":
                 raise ValueError("Setting.h is empty")
-        with open(self.settings_file_path, "w") as f:
+        with open(execution_path / "settings.h", "w") as f:
             for key in self.parameter.keys():
                 if key in self.value_setting:
                     text = self.replace_val(text, self.setting_definer[key], self.parameter[key], print_setting=print_setting)

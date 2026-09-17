@@ -93,8 +93,9 @@ class SimTool:
         execution_path.mkdir(parents=True, exist_ok=True)
         while True:
             try:
-                Settings.apply_settings(print_setting=print_setting,parameter_ref=parameter_ref)
-                shutil.copy(Settings.settings_file_path, execution_path)
+                Settings.apply_settings(print_setting=print_setting,parameter_ref=parameter_ref,execution_path=execution_path)
+                if not (execution_path / "settings.h").exists():
+                    shutil.copy(Settings.settings_file_path, execution_path / "settings.h")
                 break
             except PermissionError:
                 print("Tried to copy settings.h to execution path and failed.")
@@ -156,8 +157,12 @@ class SimTool:
                 save_path = Settings.std_path
             partial_events = events // max_workers
             save_folder = save_path / "PARALLEL"
-            save_folder.mkdir(exist_ok = True, parents=True)
+            save_folder.mkdir(parents=True)
             worker_folder_name = lambda worker: "Worker "+str(worker+1)
+            for worker in range(max_workers):
+                worker_folder = save_folder / worker_folder_name(worker)
+                worker_folder.mkdir()
+                shutil.copy2(Settings.settings_file_path, worker_folder / "settings.h")
             ev0 = parameter[Setting.g_nEvent]
             parameter[Setting.g_nEvent] = partial_events
             with ProcessPoolExecutor(max_workers=max_workers) as executor:
