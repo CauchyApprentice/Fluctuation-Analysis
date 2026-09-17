@@ -9,6 +9,7 @@ from Func import func
 from dataclasses import dataclass
 from typing import Any
 from scipy.ndimage import gaussian_filter
+from concurrent.futures import ProcessPoolExecutor
 
 @dataclass
 class Run:
@@ -18,6 +19,7 @@ class Run:
 
 class SimTool:
     def __init__(self):
+        self.parallel = self.Parallel(self)
         self.run_path = Settings.std_path / "runs"
         self.settings_file_name = "settings"
         self.createdPopFile_stdname = "\"createdPopFile.dat\""
@@ -85,7 +87,7 @@ class SimTool:
         Settings.apply_settings(print_setting=print_setting)
         return subprocess.run(["cmd", "/c", "root", r"C:\RAINIER\RAINIER.C"], capture_output=True, text=True, cwd=r"C:\RAINIER\sample_folder").stdout
 
-    def run_simulation(self, *, save_path = None, file_name = None, print_setting = True):
+    def run_simulation(self, *, save_path: Path = None, file_name: str = None, print_setting: bool = True) -> None:
         if file_name == None:
             file_name = "unnamed_run"
         if save_path == None:
@@ -102,6 +104,40 @@ class SimTool:
                 file.write(Setting(key).name+" : "+str(parameter[key])+"\n")
         run_path = Settings.rainier_sample_folder / "Run0001.root"
         run_path.replace(current_run_folder / (file_name+".root"))
+
+    def run_simulation_then_read(self, save_path: Path = None, file_name: str = None, *, print_setting: bool = True) -> Run:
+        '''
+        Executes run_simulation, then reads and returns the run.
+        '''
+        self.run_simulation(save_path=save_path,file_name=file_name,print_setting=print_setting)
+        run_path = save_path / file_name
+        return self.read_run(run_path)
+
+    def run_simulation_events(self, number_of_events: int, *, save_path: Path = None, file_name: str = None, print_setting: bool = True) -> None:
+        '''
+        Same as run_simulation() but you can define the number of events as an argument.
+        '''
+        ev0 = parameter[Setting.g_nEvent]
+        parameter[Setting.g_nEvent] = number_of_events
+        self.run_simulation(save_path=save_path,file_name=file_name,print_setting=print_setting)
+        parameter[Setting.g_nEvent] = ev0
+
+    def run_simulation_events_then_read(self, number_of_events: int, *, save_path: Path = None, file_name: str = None, print_setting: bool = True) -> None:
+        '''
+        Same as run_simulation_then_read() but you can define the number of events as an argument.
+        '''
+        self.run_simulation_events(number_of_events, save_path=save_path, file_name=file_name, print_setting=print_setting)
+        run_path = save_path / file_name
+        return self.read_run(run_path)
+
+    class Parallel:
+        def __init__(self, sim):
+            self.sim: SimTool = sim
+
+        def run(self) -> None:
+            if __name__ == "__main__":
+                with ProcessPoolExecutor(max_workers=10) as executor:
+                    executor.map(sim.run_simulation_events, 5000)
 
     def iterate(self, param: Setting, param_range: list, *, save_path: Path = None) -> None:
         if save_path == None:
@@ -304,11 +340,11 @@ class SimTool:
         with open(Settings.rainier_sample_folder / "createdPopFile.dat", "w") as f:
             f.writelines(lines)
 
-    def make_pop_file2(self, *, q: float, energy_bins: int, exp_res: float = None) -> tuple[np.ndarray, np.ndarray]:
+    def make_pop_file2(self, *, q: float, energy_bins: int, exp_res: float = 0) -> tuple[np.ndarray, np.ndarray]:
         '''
         Creates a beta decay like population file. Applies an experimental resolution by default, can be disabled.
         '''
-        if exp_res is None:
+        if exp_res == 0:
             exp_res = parameter[Setting.exp_resolution]
         spins = range(10) #this is a fixed range. i know, thats a limitation for the program but it works like this right now.
         lines = []
