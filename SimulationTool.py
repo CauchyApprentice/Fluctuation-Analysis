@@ -148,6 +148,7 @@ class SimTool:
     class Parallel:
         def __init__(self, sim):
             self.sim: SimTool = sim
+            self.subfolder_name = "PARALLEL"
 
         def run(self, *, events: int, max_workers: int = 10, save_path: Path = None) -> None:
             '''
@@ -156,7 +157,7 @@ class SimTool:
             if save_path is None:
                 save_path = Settings.std_path
             partial_events = events // max_workers
-            save_folder = save_path / "PARALLEL"
+            save_folder = save_path / self.subfolder_name
             save_folder.mkdir(parents=True)
             worker_folder_name = lambda worker: "Worker "+str(worker+1)
             for worker in range(max_workers):
@@ -176,6 +177,39 @@ class SimTool:
                 for future in futures:
                     future.result()
             parameter[Setting.g_nEvent] = ev0
+
+        def collect_root_files(self, *, save_path: Path) -> None:
+            parallel_folder = save_path / self.subfolder_name
+            ind = 1
+            for worker_folder in parallel_folder.iterdir():
+                for file in worker_folder.iterdir():
+                    if file.name[-5:] == ".root":
+                        shutil.copy2(parallel_folder / worker_folder / file.name,
+                                    parallel_folder / ("Run"+str(ind)+".root"))
+                        ind += 1
+                shutil.rmtree(parallel_folder / worker_folder)
+
+        def combine_root_files(self, *, save_path: Path, name1: str, name2:str) -> None:
+            subprocess.run([
+                "hadd",
+                "-f",
+                "combined.root",
+                name1,
+                name2,
+            ], cwd=save_path / self.subfolder_name, check=True)
+
+        def add_root_files(self, *, save_path: Path) -> None:
+            folder_path = save_path / self.subfolder_name
+            file_names = []
+            for root_file in folder_path.iterdir():
+                file_names.append(root_file.name)
+            shutil.copy2(folder_path / file_names[0], folder_path / "combined.root")
+            for k in range(1,len(file_names)):
+                (folder_path / "combined.root").rename(folder_path / "temp.root")
+                self.combine_root_files(save_path=save_path,
+                                        name1="temp.root",
+                                        name2=file_names[k])
+                (folder_path / "temp.root").unlink()
 
     def iterate(self, param: Setting, param_range: list, *, save_path: Path = None) -> None:
         if save_path == None:
