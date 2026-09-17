@@ -1,6 +1,7 @@
 from enum import IntEnum, auto
 from pathlib import Path
 from typing import Any
+import shutil
 
 class Setting(IntEnum):
     g_nReal = auto()
@@ -49,19 +50,33 @@ class SettingsClass:
     def __init__(self):
         self.Q_76Ga = 6.9163
 
+        self.rainier_sample_folder = Path(r"C:\RAINIER\sample_folder")
+        self.rainier_path =Path(r"C:\RAINIER")
+        self.this_dir = self.rainier_sample_folder
+        self.std_path = self.this_dir / "fluctuation_analysis"
+        self.root_file_folder = self.std_path / "ROOT_files"
+        self.settings_file_path = self.rainier_sample_folder / "settings.h"
+
+        self.folder_fluct_name = "fluct input"
+        self.folder_NLD_name = "nld"
+        self.folder_smoothing_name = "smoothing"
+        self.folder_stationary_name = "stationary"
+        self.folder_autocorr_name = "autocorrelation"
+        self.folder_comparison_name = "comparison"
+
         self.parameter: dict[Setting, Any] = {
             Setting.g_nReal : 1,
             Setting.g_nZ : 32,
             Setting.g_nAMass : 76,
             Setting.g_nConEBin : 7000,
-            Setting.g_nEvent : 1000,
+            Setting.g_nEvent : 500,
             Setting.g_nConSpbMax : 21,
             Setting.g_nDisLvlMax : 1,
             Setting.exp_resolution : 0.002,
             Setting.g_dExIMax : self.Q_76Ga, #ONLY WORKS FOR THE bExFullRxn atm LOOK DEFINER
             Setting.g_dExRes : 0.00098818402628947, #same as above
             Setting.g_nExPopI : 7000, #same as above
-            Setting.popFile_name : "\"createdPopFile.dat\"",
+            Setting.popFile_name : r'"C:\\RAINIER\\sample_folder\\createdPopFile.dat"',
 
             Setting.sim_bin_width : 0.05,
 
@@ -137,16 +152,7 @@ class SettingsClass:
             }
         }
 
-        self.rainier_sample_folder = Path(r"C:\RAINIER\sample_folder")
-        self.this_dir = self.rainier_sample_folder
-        self.std_path = self.this_dir / "fluctuation_analysis"
 
-        self.folder_fluct_name = "fluct input"
-        self.folder_NLD_name = "nld"
-        self.folder_smoothing_name = "smoothing"
-        self.folder_stationary_name = "stationary"
-        self.folder_autocorr_name = "autocorrelation"
-        self.folder_comparison_name = "comparison"
 
     def replace_def(self, text, param, new_def, *, print_setting = True):
         definer = self.def_setting_definer[param]
@@ -179,10 +185,16 @@ class SettingsClass:
 
 
 
-    def apply_settings(self, *, print_setting: bool = True) -> None:
-        with open(self.rainier_sample_folder / "settings.h", "r") as f:
+    def apply_settings(self, *, parameter_ref = None, print_setting: bool = True, execution_path: Path = None) -> None:
+        if execution_path is None:
+            execution_path = self.root_file_folder
+        if parameter_ref is None:
+            parameter_ref = self.parameter
+        with open(self.settings_file_path, "r") as f:
             text = f.read()
-        with open(self.rainier_sample_folder / "settings.h", "w") as f:
+            if text == "":
+                raise ValueError("Setting.h is empty")
+        with open(self.settings_file_path, "w") as f:
             for key in self.parameter.keys():
                 if key in self.value_setting:
                     text = self.replace_val(text, self.setting_definer[key], self.parameter[key], print_setting=print_setting)

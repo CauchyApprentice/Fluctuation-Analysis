@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from typing import Any
 from scipy.ndimage import gaussian_filter
 from concurrent.futures import ProcessPoolExecutor
+import shutil
+import time
 
 @dataclass
 class Run:
@@ -81,13 +83,25 @@ class SimTool:
             spin_dict[str(s)] = spin_array[k]
         return (energy,spin_dict)   
 
-    def simple_run(self, *, print_setting: bool = True) -> str:
-        if parameter[Setting.fluct_bin] != parameter[Setting.g_nConEBin]:
+    def simple_run(self, *, print_setting: bool = True, execution_path: Path = None, parameter_ref: dict[Setting, Any] = None) -> str:
+        if parameter_ref is None:
+            parameter_ref = parameter
+        if execution_path is None:
+            execution_path = Settings.root_file_folder
+        if parameter_ref[Setting.fluct_bin] != parameter_ref[Setting.g_nConEBin]:
             print("Simple Run: Simulated and fluct binning arent identical.")
-        Settings.apply_settings(print_setting=print_setting)
-        return subprocess.run(["cmd", "/c", "root", r"C:\RAINIER\RAINIER.C"], capture_output=True, text=True, cwd=r"C:\RAINIER\sample_folder").stdout
+        execution_path.mkdir(parents=True, exist_ok=True)
+        while True:
+            try:
+                Settings.apply_settings(print_setting=print_setting,parameter_ref=parameter_ref)
+                shutil.copy(Settings.settings_file_path, execution_path)
+                break
+            except PermissionError:
+                print("Tried to copy settings.h to execution path and failed.")
+                time.sleep(2)
+        return subprocess.run(["cmd", "/c", "root", str(Settings.rainier_path / "RAINIER.C")], capture_output=True, text=True, cwd=execution_path).stdout
 
-    def run_simulation(self, *, save_path: Path = None, file_name: str = None, print_setting: bool = True) -> None:
+    def run_simulation(self, *, save_path: Path = None, file_name: str = None, print_setting: bool = True, execution_path: Path = None) -> None:
         if file_name == None:
             file_name = "unnamed_run"
         if save_path == None:
@@ -96,37 +110,37 @@ class SimTool:
             save_path.mkdir(exist_ok = True, parents=True)
         current_run_folder = save_path / file_name
         current_run_folder.mkdir(exist_ok=True)
-        run_text = self.simple_run(print_setting=print_setting)
+        run_text = self.simple_run(print_setting=print_setting,execution_path=execution_path)
         with open(current_run_folder / (file_name+".txt"), "w") as file:
             file.write(run_text)
         with open(current_run_folder / (self.settings_file_name+".txt"), "w") as file:
             for key in parameter:
                 file.write(Setting(key).name+" : "+str(parameter[key])+"\n")
-        run_path = Settings.rainier_sample_folder / "Run0001.root"
+        run_path = Settings.root_file_folder / "Run0001.root"
         run_path.replace(current_run_folder / (file_name+".root"))
 
-    def run_simulation_then_read(self, save_path: Path = None, file_name: str = None, *, print_setting: bool = True) -> Run:
+    def run_simulation_then_read(self, save_path: Path = None, file_name: str = None, *, print_setting: bool = True, execution_path: Path = None) -> Run:
         '''
         Executes run_simulation, then reads and returns the run.
         '''
-        self.run_simulation(save_path=save_path,file_name=file_name,print_setting=print_setting)
+        self.run_simulation(save_path=save_path,file_name=file_name,print_setting=print_setting,execution_path=execution_path)
         run_path = save_path / file_name
         return self.read_run(run_path)
 
-    def run_simulation_events(self, number_of_events: int, *, save_path: Path = None, file_name: str = None, print_setting: bool = True) -> None:
+    def run_simulation_events(self, number_of_events: int, *, save_path: Path = None, file_name: str = None, print_setting: bool = True, execution_path: Path = None) -> None:
         '''
         Same as run_simulation() but you can define the number of events as an argument.
         '''
         ev0 = parameter[Setting.g_nEvent]
         parameter[Setting.g_nEvent] = number_of_events
-        self.run_simulation(save_path=save_path,file_name=file_name,print_setting=print_setting)
+        self.run_simulation(save_path=save_path,file_name=file_name,print_setting=print_setting,execution_path=execution_path)
         parameter[Setting.g_nEvent] = ev0
 
-    def run_simulation_events_then_read(self, number_of_events: int, *, save_path: Path = None, file_name: str = None, print_setting: bool = True) -> None:
+    def run_simulation_events_then_read(self, number_of_events: int, *, save_path: Path = None, file_name: str = None, print_setting: bool = True, execution_path: Path = None) -> None:
         '''
         Same as run_simulation_then_read() but you can define the number of events as an argument.
         '''
-        self.run_simulation_events(number_of_events, save_path=save_path, file_name=file_name, print_setting=print_setting)
+        self.run_simulation_events(number_of_events, save_path=save_path, file_name=file_name, print_setting=print_setting,execution_path=execution_path)
         run_path = save_path / file_name
         return self.read_run(run_path)
 
@@ -134,21 +148,29 @@ class SimTool:
         def __init__(self, sim):
             self.sim: SimTool = sim
 
-        def run(self, *, events: int, max_workers: int = 10, save_path: Path = None) -> list[Run]:
+        def run(self, *, events: int, max_workers: int = 10, save_path: Path = None) -> None:
+            '''
+            Runs a simulation with a given event number by redistributing the events across parallel simulation on different cpu cores.
+            '''
             if save_path is None:
                 save_path = Settings.std_path
             partial_events = events // max_workers
             save_folder = save_path / "PARALLEL"
             save_folder.mkdir(exist_ok = True, parents=True)
+            worker_folder_name = lambda worker: "Worker "+str(worker+1)
+            ev0 = parameter[Setting.g_nEvent]
+            parameter[Setting.g_nEvent] = partial_events
             with ProcessPoolExecutor(max_workers=max_workers) as executor:
                 futures = [executor.submit(
-                    sim.run_simulation_events_then_read,
-                    partial_events,
-                    save_path=save_folder,
-                    file_name=str(worker)
+                    sim.simple_run,
+                    print_setting=False,
+                    execution_path=save_folder / worker_folder_name(worker),
+                    parameter_ref=parameter
                 ) for worker in range(max_workers)]
 
-                result = [future.result() for future in futures]
+                for future in futures:
+                    future.result()
+            parameter[Setting.g_nEvent] = ev0
 
     def iterate(self, param: Setting, param_range: list, *, save_path: Path = None) -> None:
         if save_path == None:
