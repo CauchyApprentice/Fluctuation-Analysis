@@ -35,18 +35,13 @@ class FluctuationAnalysisPlot:
     def __init__(self):
         pass
 
-    def plot_fluct_data(self, energy, fluct_data, save_path, file_name, series = True):
-        if not series:
-            plt.figure()
+    def plot_fluct_data(self, energy: list, fluct_data: list, *, show_full: bool = False) -> None:
         plt.plot(energy, fluct_data)
         plt.xlabel("E in MeV")
         plt.ylabel("Total Absorption Spectrum")
         plt.title("Input data")
-        #plt.yscale("log")
-        plt.ylim(0,np.percentile(fluct_data, [0,99.8])[1])
-        if not series:
-            plt.savefig(save_path / Settings.folder_fluct_name / file_name, dpi=300)
-            plt.close()
+        if not show_full:
+            plt.ylim(0,np.percentile(fluct_data, [0,99.8])[1])
 
     def plot_nld(self, energy, nld, save_path, file_name = "myNLD.png", series = True):
         if not series:
