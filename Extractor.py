@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import uproot
 from Settings import Setting, Settings, parameter
-from SimulationTool import Run
+from SimTool import Run
 
 class Extractor:
     def __init__(self):

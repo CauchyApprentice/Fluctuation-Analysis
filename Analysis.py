@@ -9,7 +9,7 @@ from Func import func
 from dataclasses import dataclass
 from typing import Any
 from functools import singledispatchmethod
-from SimulationTool import Run
+from SimTool import Run
 from Extractor import extract
 
 class FaStep(IntEnum):
@@ -126,6 +126,9 @@ class FluctuationAnalysisPlot:
         if not series:
             plt.savefig(save_path / Settings.folder_comparison_name / file_name, dpi=300)
             plt.close()
+
+    def plot_comparison3(self):
+        pass
 
     def helper_seriesplot(self, fa: FluctuationAnalysisResult, fa_step: FaStep, *, save_path: Path = None, file_name: str = None) -> None:
         if save_path == None:
