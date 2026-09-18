@@ -434,7 +434,7 @@ class SimTool:
 
         parameter[Setting.g_nExPopI] = energy_bins
         parameter[Setting.g_dExRes] = h
-        parameter[Setting.popFile_name] = self.createdPopFile_stdname
+        parameter[Setting.popFile_name] = f'"{str(Settings.popfile_path)}"'
         parameter[Setting.g_dExIMax] = q
         Settings.apply_settings(print_setting=False)
 
@@ -498,7 +498,7 @@ class SimTool:
             linestr += "\n"
             lines[i] = linestr
         
-        with open(Settings.rainier_sample_folder / "createdPopFile.dat", "w") as f:
+        with open(Settings.popfile_path, "w") as f:
             f.writelines(lines)
 
         

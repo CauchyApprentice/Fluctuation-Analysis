@@ -50,12 +50,15 @@ class SettingsClass:
     def __init__(self):
         self.Q_76Ga = 6.9163
 
+        self.popfile_name = "createdPopFile"
+
         self.rainier_sample_folder = Path(r"C:\Users\Raphael\Desktop\FAIRIES output\sample_folder")
         self.rainier_path =Path(r"C:\RAINIER")
         self.this_dir = Path(r"C:\Users\Raphael\Desktop\FAIRIES output")
         self.std_path = self.this_dir / "fluctuation_analysis"
         self.root_file_folder = self.this_dir / "ROOT_files"
         self.settings_file_path = self.root_file_folder / "settings.h"
+        self.popfile_path = self.root_file_folder / (self.popfile_name+".dat")
 
         self.folder_fluct_name = "fluct input"
         self.folder_NLD_name = "nld"

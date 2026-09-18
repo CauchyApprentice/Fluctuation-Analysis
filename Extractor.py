@@ -49,12 +49,6 @@ class Extractor:
         for k in range(len(spins)):
             spin = spins[k]
             fluct_data_dict[int(spin)] = counts[k]
-        # for spin in spins:
-        #     fluct_data = fluct_data_dict[spin]
-        #     plt.figure()
-        #     plt.title("Spin "+str(spin))
-        #     plt.plot(energy, fluct_data)
-        #     plt.yscale("log")
         return (energy, fluct_data_dict)
         
 
