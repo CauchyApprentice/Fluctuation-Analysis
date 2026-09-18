@@ -22,15 +22,13 @@ class FaStep(IntEnum):
 
 @dataclass
 class FluctuationAnalysisResult:
-    energy: np.ndarray
+    fluct_energy: np.ndarray
     fluct_data: np.ndarray
-    nld_energy: np.ndarray
-    nld: np.ndarray
     fine: np.ndarray
     rough: np.ndarray
     stationary: np.ndarray
-    dens_energy: np.ndarray
-    density: np.ndarray
+    energy_range: np.ndarray
+    nld: np.ndarray
     settings: dict[Setting, Any]
 
 class FluctuationAnalysisPlot:
@@ -135,41 +133,39 @@ class FluctuationAnalysisPlot:
             save_path = Settings.std_path
         if file_name == None:
             file_name = "unnamed_fluct_plot"
-        energy = fa.energy
+        fluct_energy = fa.fluct_energy
         fluct_data = fa.fluct_data
-        nld_energy = fa.nld_energy
-        nld = fa.nld
         fine = fa.fine
         rough = fa.rough
         stationary = fa.stationary
-        E_int = fa.dens_energy
-        fa_dens = fa.density
+        energy_range = fa.energy_range
+        extract_nld = fa.nld
         match fa_step:
             case FaStep.fluct:
-                self.plot_fluct_data(energy, fluct_data, save_path, file_name)
-            case FaStep.nld:
-                self.plot_nld(nld_energy, nld, save_path, file_name)
+                self.plot_fluct_data(fluct_energy, fluct_data, save_path, file_name)
+            # case FaStep.nld:
+            #     self.plot_nld(nld_energy, nld, save_path, file_name)
             case FaStep.smoothing:
                 #self.plot_smooth(energy[start:finish], fluct_data[start:finish], fine[start:finish], rough[start:finish], save_path, file_name)
-                self.plot_smooth(energy, fluct_data, fine, rough, save_path, file_name)
+                self.plot_smooth(fluct_energy, fluct_data, fine, rough, save_path, file_name)
             case FaStep.stationary:
-                self.plot_stationary(energy, stationary, save_path, file_name)
+                self.plot_stationary(fluct_energy, stationary, save_path, file_name)
             case FaStep.autocorr:
                 pass
             case FaStep.comparison:
-                self.plot_comparison2(E_int, fa_dens, nld_energy, nld, save_path, file_name)
+                self.plot_comparison2(energy_range, extract_nld, energy_range, extract_nld, save_path, file_name)
 
 
     def create(self, fa_collection: list[FluctuationAnalysisResult], *, save_path: Path = None, file_name: str = "test", print_nld = True, print_smooth = True, print_stationary = True, print_autocorrelation = True, print_comparison = True) -> None:
         fa_collection_array = fa_collection
         if save_path == None:
             save_path = Settings.std_path
-        (save_path/Settings.folder_fluct_name).mkdir(exist_ok=True)
-        (save_path/Settings.folder_NLD_name).mkdir(exist_ok=True)
-        (save_path/Settings.folder_smoothing_name).mkdir(exist_ok=True)
-        (save_path/Settings.folder_stationary_name).mkdir(exist_ok=True)
-        (save_path/Settings.folder_autocorr_name).mkdir(exist_ok=True)
-        (save_path/Settings.folder_comparison_name).mkdir(exist_ok=True)
+        (save_path/Settings.folder_fluct_name).mkdir(exist_ok=True, parents=True)
+        (save_path/Settings.folder_NLD_name).mkdir(exist_ok=True, parents=True)
+        (save_path/Settings.folder_smoothing_name).mkdir(exist_ok=True, parents=True)
+        (save_path/Settings.folder_stationary_name).mkdir(exist_ok=True, parents=True)
+        (save_path/Settings.folder_autocorr_name).mkdir(exist_ok=True, parents=True)
+        (save_path/Settings.folder_comparison_name).mkdir(exist_ok=True, parents=True)
         for step in FaStep:
             if step == FaStep.autocorr: #TEMPORARY
                 continue
@@ -192,20 +188,11 @@ class FluctuationAnalysis:
     def __init__(self):
         self.plot = FluctuationAnalysisPlot()
 
-
     def get_smooth(self, fluct_data, deltaE, sigma_fine, sigma_rough):
         np_data = np.array(fluct_data)
         fine = gaussian_filter(np_data, sigma=sigma_fine/deltaE)
         rough = gaussian_filter(np_data, sigma=sigma_rough/deltaE)
         return fine, rough
-
-    def get_interval(self, energy, myData, lower, upper):
-        intervalled_data = []
-        for k in range(myData.size):
-            if energy[k] >= lower and energy[k] <= upper:
-                intervalled_data.append(myData[k])
-        intervalled_data = np.array(intervalled_data)
-        return intervalled_data
 
     def get_interval2(self, energy, myData, lower, upper):
         mask = (energy >= lower) & (energy <= upper)
@@ -241,41 +228,15 @@ class FluctuationAnalysis:
     def get_level_density(self, energy, stationary, Emin, Emax, sigma):
         return 1 / self.get_avg_level_spacing(energy, stationary, Emin, Emax, sigma)
 
-    def calc_lvl_dens(self, E, E_step, energy, full_data, sigma = None):
-        alpha = parameter[Setting.alpha_parameter]
-        return 1/ ((self.autocorr(0, energy, full_data, E - E_step/2, E + E_step/2)-1)*2*sigma*np.sqrt(np.pi)/alpha)
-
-    def get_fa_density2(self, E_start, E_end, E_step, energy, stationary, sigma_fine):
-        E_int = np.arange(E_start + E_step/2, E_end - E_step/2, E_step)
-        n = len(E_int)
-        result = np.zeros((2,n))
-        for k in range(n):
-            result[0][k] = E_int[k]
-            result[1][k] = self.get_level_density(energy, stationary, E_int[k]-E_step/2, E_int[k]+E_step/2, sigma_fine)
-        return result
-
-    def get_fa_density(self, E_start, E_end, E_step, energy, full_data, sigma_fine):
-        E_int = np.arange(E_start + E_step/2, E_end + E_step/2, E_step)
-        n = len(E_int)
-        result = np.zeros((2,n))
-        for k in range(n):
-            result[0][k] = E_int[k]
-            result[1][k] = self.calc_lvl_dens(E_int[k], E_step, energy, full_data, sigma_fine)
-        return result
-
     def get_energy_width(self, energy):
         return np.mean(np.diff(energy))
 
     @singledispatchmethod
-    def fluctuation_analysis(self, energy, fluct_data, nld_energy, nld, *, E_step = None, slid_start = None, slid_end = None, slid_shift = None) -> FluctuationAnalysisResult:
-        if slid_start == None:
-            slid_start = parameter[Setting.slid_E_start]
-        if slid_end == None:
-            slid_end = parameter[Setting.slid_E_end]
-        if slid_shift == None:
-            slid_shift = parameter[Setting.slid_E_shift]
-        if E_step == None:
-            E_step = parameter[Setting.E_step]
+    def fluctuation_analysis(self, energy: list, fluct_data: list) -> FluctuationAnalysisResult:
+        E_start = parameter[Setting.analysis_E_start]
+        E_end = parameter[Setting.analysis_E_end]
+        sliding_window_shift = parameter[Setting.sliding_window_E_shift]
+        E_step = parameter[Setting.analysis_E_step]
 
         #calculate smoothing energies sigma
         deltaE = parameter[Setting.exp_resolution]
@@ -284,24 +245,21 @@ class FluctuationAnalysis:
         sigma_fine = deltaE/2
         sigma_rough = 3*sigma_fine
         fine, rough = self.get_smooth(fluct_data, deltaE, sigma_fine, sigma_rough)
-        d_full = fine/rough
+        stationary = fine/rough
 
-        n = int(E_step/slid_shift)
-        E_int_array = []
-        fa_dens_array = []
-        for k in range(n):
-            E_int, fa_dens = self.get_fa_density2(slid_start + k * slid_shift, slid_end + k * slid_shift, E_step, energy, d_full, sigma_fine)
-            E_int_array.append(E_int)
-            fa_dens_array.append(fa_dens)
-        return FluctuationAnalysisResult(energy,fluct_data,nld_energy,nld,fine,rough,d_full,E_int_array,fa_dens_array,parameter)
+        energy_range = np.arange(E_start + E_step/2, E_end - E_step/2, sliding_window_shift)
+        nld_list = []
+        for E_val in energy_range:
+            nld_list.append(
+                self.get_level_density(energy, stationary, E_val - E_step/2, E_val + E_step/2, sigma_fine)
+            )
+        return FluctuationAnalysisResult(energy,fluct_data,fine,rough,stationary,energy_range,nld_list,parameter)
 
     @fluctuation_analysis.register
     def _(self, run: Run):
-        nld_energy, nld_dict = run.level_data
-        nld = nld_dict["-1"]
         energy, fluct_data_dict = extract.get_fluct_data_spin(run,plot=False)
         fluct_data = fluct_data_dict[-1]
-        return self.fluctuation_analysis(energy, fluct_data, nld_energy, nld)
+        return self.fluctuation_analysis(energy, fluct_data)
 
     def iterate(self, energy, fluct_data, nld_energy, nld, param, param_range):
         param0 = parameter[param]

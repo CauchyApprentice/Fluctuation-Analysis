@@ -20,12 +20,13 @@ class Setting(IntEnum):
     exp_resolution = auto()
     alpha_parameter = auto()
     sigma_fine = auto()
-    E_step = auto()
+    
     fluct_bin = auto()
 
-    slid_E_start = auto()
-    slid_E_end = auto()
-    slid_E_shift = auto()
+    analysis_E_step = auto()
+    analysis_E_start = auto()
+    analysis_E_end = auto()
+    sliding_window_E_shift = auto()
 
     nld_model = auto()
     exci_mode = auto()
@@ -92,12 +93,12 @@ class SettingsClass:
             Setting.exci_mode : EXCI.full_rxn,
 
             Setting.alpha_parameter : 0.273, #with PT 2.273
-            Setting.E_step : 0.5,
+            Setting.analysis_E_step : 0.5,
             Setting.fluct_bin : 7000,
 
-            Setting.slid_E_start : 0,
-            Setting.slid_E_end : 7,
-            Setting.slid_E_shift : 0.1
+            Setting.analysis_E_start : 0,
+            Setting.analysis_E_end : 7,
+            Setting.sliding_window_E_shift : 0.1
         }
 
         self.setting_definer: dict[Setting, str] = {
