@@ -352,12 +352,6 @@ class SimTool:
             '''
             return self.phase_space_factor(ex, q) * func.rho(ex, 1)
 
-        def dist(self, ex_energies, q: float) -> np.ndarray:
-            '''
-            Returns an array with the beta decay population distribution (not normalized).
-            '''
-            return [self.func(ex, q) for ex in ex_energies]
-
         def normalized(self, dist: list) -> np.ndarray:
             '''
             Returns the a normalized list (probability distribution).
@@ -375,18 +369,16 @@ class SimTool:
                 h = self.bin_width(q, energy_bins)
                 return gaussian_filter(dist, sigma=exp_res/h)
 
-        def dist_gauss_norm(self, ex_energies: list, q: float, energy_bins: int, exp_res: float) -> list:
+        def dist_gauss_norm(self, ex_energies: list, q: float, energy_bins: int, exp_res: float = 0) -> list:
             dist_gauss = self.dist_gauss(ex_energies,q,energy_bins,exp_res)
             return self.normalized(dist_gauss)
 
-        def make_pop_file(self, *, q: float, energy_bins: int, exp_res: float = 0) -> tuple[np.ndarray, np.ndarray]:
+        def make_file(self, *, q: float, energy_bins: int, exp_res: float = 0) -> None:
             '''
             Creates a beta decay like population file. Applies an experimental resolution by default, can be disabled.
             '''
             if not energy_bins > 1:
                 raise ValueError("energy_bins have to be more than 1.")
-            if exp_res == 0:
-                exp_res = parameter[Setting.exp_resolution]
             spins = range(10) #this is a fixed range. i know, thats a limitation for the program but it works like this right now.
             lines = []
             sp = " "
@@ -399,8 +391,7 @@ class SimTool:
             lines.append(overhead)
 
             ex_energies = self.ex_energy_list(q, energy_bins)
-            pop_dist = self.dist(ex_energies, q)
-            pop_dist_norm = self.normalized(pop_dist)
+            pop_dist_norm = self.dist_gauss_norm(ex_energies, q, exp_res)
 
             h = self.bin_width(q, energy_bins)
             parameter[Setting.g_nExPopI] = energy_bins
@@ -430,28 +421,6 @@ class SimTool:
                             line[3 + 2*s + sep] = 0
                 lines.append(line)
 
-            spin_minus1_list = np.zeros(len(lines)-1)
-            for k in range(1, len(lines)):
-                spin_minus1_list[k-1] = lines[k][5]
-
-            if exp_res > 0:
-                spin_minus1_list = gaussian_filter(spin_minus1_list, sigma=exp_res/h)
-
-            for k in range(1, len(lines)):
-                lines[k][5] = spin_minus1_list[k-1]
-
-            # total_levels = 0
-            # for k in range(1, len(lines)):
-            #     total_levels += lines[k][5]
-
-            # for k in range(1,len(lines)):
-            #     lines[k][5] *= 1/total_levels
-            #     lines[k][2] = lines[k][5]
-
-            spin_minus1_list = np.zeros(len(lines)-1)
-            for k in range(1, len(lines)):
-                spin_minus1_list[k-1] = lines[k][5]
-
             for i in range(1, len(lines)): #starts from 1 because of overhead
                 line = lines[i]
                 linestr = ""
@@ -471,8 +440,6 @@ class SimTool:
             
             with open(Settings.popfile_path, "w") as f:
                 f.writelines(lines)
-
-            return ex_energies, spin_minus1_list
 
 sim = SimTool()
 
