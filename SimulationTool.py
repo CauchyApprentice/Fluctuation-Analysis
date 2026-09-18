@@ -22,6 +22,7 @@ class Run:
 class SimTool:
     def __init__(self):
         self.parallel = self.Parallel(self)
+        self.pop = self.Population(self)
         self.run_path = Settings.std_path / "runs"
         self.settings_file_name = "settings"
         self.createdPopFile_stdname = "\"createdPopFile.dat\""
@@ -324,186 +325,128 @@ class SimTool:
         #print("needs bigger nld data to make pop file.")
         return res
 
-    def make_pop_file(self, q = 7.5, energy_bins = 200):
-        #makes pop file and adjusts setting file to fit the sizes etc
-        ev0 = parameter[Setting.g_nEvent]
-        ecrit0 = parameter[Setting.g_nDisLvlMax]
-        parameter[Setting.g_nEvent] = 0
-        parameter[Setting.g_nDisLvlMax] = 14
-        parameter[Setting.popFile_name] = self.std_popFileName
-        parameter[Setting.g_dExIMax] = 7
-        parameter[Setting.g_dExRes] = 0.2
-        parameter[Setting.g_nExPopI] = 30
-        #NEUEIDEE: MACH HIER ERSTMAL DIE SACHEN FÜR EINE ANDER LEVEL FILE ALS STANDARD DANN IST ES NICHT SO STARK ABHÄNGIG VON DAVOR JA.
-        run_text = self.simple_run(print_setting=False)
-        nld_energy, nld_dict = self.from_runtext_get_nld_energy_nld_dict(run_text)
-        parameter[Setting.g_nEvent] = ev0
-        parameter[Setting.g_nDisLvlMax] = ecrit0
-        nld = nld_dict["-1"]
-        total_levels_min1 = 0
+    class Population:
+        def __init__(self, sim):
+            self.sim: SimTool = sim
 
-        spins = range(10) #this is a fixed range. i know, thats a limitation for the program but it works like this right now.
-        lines = []
-        sp = " "
-        signs = ["-", "+"]
-        overhead = "bin Ex Popul. "
-        for spin in spins:
-            for sign in signs:
-                overhead += str(spin) + sign + sp
-        overhead += "\n" + "\n"
-        lines.append(overhead)
+        def phase_space_factor(self, ex: float, q: float) -> float:
+            '''
+            Calculates beta decay phase space coefficient (Sargent's Law)
+            '''
+            return pow(q - ex, 5)
 
-        h = q / (energy_bins - 1)
-        ex = lambda bin: h * bin
+        def func(self, ex: float, q: float) -> float:
+            '''
+            Computes beta decay population probability (not an actual probability, not normalized).
+            '''
+            return self.phase_space_factor(ex, q) * func.rho(ex, 1)
 
-        parameter[Setting.g_nExPopI] = energy_bins
-        parameter[Setting.g_dExRes] = h
-        parameter[Setting.popFile_name] = self.createdPopFile_stdname
-        parameter[Setting.g_dExIMax] = q
-        Settings.apply_settings(print_setting=False)
+        def dist(self, ex_energies, q: float) -> np.ndarray:
+            '''
+            Returns an array with the beta decay population distribution (not normalized).
+            '''
+            return [self.pop_func(ex, q) for ex in ex_energies]
 
-        f = lambda ex: pow(q - ex, 5)
-        for k in range(energy_bins):
-            line = np.zeros(3 + 2*len(spins))
-            line[0] = k #bin
-            line[1] = ex(k) #ex
-            line[2] = 0 #popul.
-            for s in spins:
+        def dist_norm(self, ex_energies, q: float) -> np.ndarray:
+            '''
+            Returns an array with the beta decay population distribution (normalized).
+            ''' 
+            total = sum(self.pop_dist(ex_energies, q))
+            return [self.pop_func(ex, q) / total for ex in ex_energies]
+
+
+        def make_pop_file(self, *, q: float, energy_bins: int, exp_res: float = 0) -> tuple[np.ndarray, np.ndarray]:
+            '''
+            Creates a beta decay like population file. Applies an experimental resolution by default, can be disabled.
+            '''
+            if exp_res == 0:
+                exp_res = parameter[Setting.exp_resolution]
+            spins = range(10) #this is a fixed range. i know, thats a limitation for the program but it works like this right now.
+            lines = []
+            sp = " "
+            signs = ["-", "+"]
+            overhead = "bin Ex Popul. "
+            for spin in spins:
                 for sign in signs:
-                    if s == 1 and sign == "-":
-                        #print("energy: ", ex(k))
-                        ind = self.helper_match_energy(ex(k), nld_energy)
-                        #print("ind: ", ind)
-                        
-                        if ex(k) <= q:
-                            line[5] = f(ex(k)) * nld[ind]
+                    overhead += str(spin) + sign + sp
+            overhead += "\n" + "\n"
+            lines.append(overhead)
+
+            h = q / (energy_bins - 1)
+            ex = lambda bin: h * bin
+            ex_energies = [ex(k) for k in range(energy_bins)]
+            pop_dist_norm = self.dist_norm(ex_energies, q)
+
+            parameter[Setting.g_nExPopI] = energy_bins
+            parameter[Setting.g_dExRes] = h
+            parameter[Setting.popFile_name] = f'"{str(Settings.popfile_path)}"'
+            parameter[Setting.g_dExIMax] = q
+            Settings.apply_settings(print_setting=False)
+
+            
+            for k in range(energy_bins):
+                line = np.zeros(3 + 2*len(spins))
+                line[0] = k #bin
+                line[1] = ex(k) #ex
+                line[2] = 0 #popul.
+                for s in spins:
+                    for sign in signs:
+                        if s == 1 and sign == "-":
+                            if ex(k) <= q:
+                                line[5] = pop_dist_norm[k]
+                            else:
+                                line[5] = 0
                         else:
-                            line[5] = 0
-                        total_levels_min1 += line[5]
-                    else:
-                        if sign == "-1":
-                            sep = 0
+                            if sign == "-1":
+                                sep = 0
+                            else:
+                                sep = 1
+                            line[3 + 2*s + sep] = 0
+                lines.append(line)
+
+            spin_minus1_list = np.zeros(len(lines)-1)
+            for k in range(1, len(lines)):
+                spin_minus1_list[k-1] = lines[k][5]
+
+            if exp_res > 0:
+                spin_minus1_list = gaussian_filter(spin_minus1_list, sigma=exp_res/h)
+
+            for k in range(1, len(lines)):
+                lines[k][5] = spin_minus1_list[k-1]
+
+            # total_levels = 0
+            # for k in range(1, len(lines)):
+            #     total_levels += lines[k][5]
+
+            # for k in range(1,len(lines)):
+            #     lines[k][5] *= 1/total_levels
+            #     lines[k][2] = lines[k][5]
+
+            spin_minus1_list = np.zeros(len(lines)-1)
+            for k in range(1, len(lines)):
+                spin_minus1_list[k-1] = lines[k][5]
+
+            for i in range(1, len(lines)): #starts from 1 because of overhead
+                line = lines[i]
+                linestr = ""
+                linestr += str(int(line[0])) + sp + str(round(line[1], 3)) + sp + str(line[2]) + sp
+                for s in spins:
+                    for sign in signs:
+                        if s == 1 and sign == "-":
+                            linestr += str(line[5]) + sp
                         else:
-                            sep = 1
-                        line[3 + 2*s + sep] = 0
-            lines.append(line)
+                            if sign == "-1":
+                                sep = 0
+                            else:
+                                sep = 1
+                            linestr += str(line[3 + 2*s + sep]) + sp
+                linestr += "\n"
+                lines[i] = linestr
+            
+            with open(Settings.popfile_path, "w") as f:
+                f.writelines(lines)
 
-        for k in range(1,len(lines)):
-            lines[k][5] *= 1/total_levels_min1
-            lines[k][2] = lines[k][5]
-
-        for i in range(1, len(lines)): #starts from 1 because of overhead
-            line = lines[i]
-            linestr = ""
-            linestr += str(int(line[0])) + sp + str(round(line[1], 3)) + sp + str(line[2]) + sp
-            for s in spins:
-                for sign in signs:
-                    if s == 1 and sign == "-":
-                        linestr += str(line[5]) + sp
-                    else:
-                        if sign == "-1":
-                            sep = 0
-                        else:
-                            sep = 1
-                        linestr += str(line[3 + 2*s + sep]) + sp
-            linestr += "\n"
-            lines[i] = linestr
-        
-        with open(Settings.rainier_sample_folder / "createdPopFile.dat", "w") as f:
-            f.writelines(lines)
-
-    def make_pop_file2(self, *, q: float, energy_bins: int, exp_res: float = 0) -> tuple[np.ndarray, np.ndarray]:
-        '''
-        Creates a beta decay like population file. Applies an experimental resolution by default, can be disabled.
-        '''
-        if exp_res == 0:
-            exp_res = parameter[Setting.exp_resolution]
-        spins = range(10) #this is a fixed range. i know, thats a limitation for the program but it works like this right now.
-        lines = []
-        sp = " "
-        signs = ["-", "+"]
-        overhead = "bin Ex Popul. "
-        for spin in spins:
-            for sign in signs:
-                overhead += str(spin) + sign + sp
-        overhead += "\n" + "\n"
-        lines.append(overhead)
-
-        h = q / (energy_bins - 1)
-        ex = lambda bin: h * bin
-
-        parameter[Setting.g_nExPopI] = energy_bins
-        parameter[Setting.g_dExRes] = h
-        parameter[Setting.popFile_name] = f'"{str(Settings.popfile_path)}"'
-        parameter[Setting.g_dExIMax] = q
-        Settings.apply_settings(print_setting=False)
-
-        f = lambda ex: pow(q - ex, 5)
-        for k in range(energy_bins):
-            line = np.zeros(3 + 2*len(spins))
-            line[0] = k #bin
-            line[1] = ex(k) #ex
-            line[2] = 0 #popul.
-            for s in spins:
-                for sign in signs:
-                    if s == 1 and sign == "-":
-                        if ex(k) <= q:
-                            line[5] = f(ex(k)) * func.rho(ex(k), s)
-                        else:
-                            line[5] = 0
-                    else:
-                        if sign == "-1":
-                            sep = 0
-                        else:
-                            sep = 1
-                        line[3 + 2*s + sep] = 0
-            lines.append(line)
-
-        spin_minus1_list = np.zeros(len(lines)-1)
-        for k in range(1, len(lines)):
-            spin_minus1_list[k-1] = lines[k][5]
-
-        if exp_res > 0:
-            spin_minus1_list = gaussian_filter(spin_minus1_list, sigma=exp_res/h)
-
-        for k in range(1, len(lines)):
-            lines[k][5] = spin_minus1_list[k-1]
-
-        total_levels = 0
-        for k in range(1, len(lines)):
-            total_levels += lines[k][5]
-
-        for k in range(1,len(lines)):
-            lines[k][5] *= 1/total_levels
-            lines[k][2] = lines[k][5]
-
-        spin_minus1_list = np.zeros(len(lines)-1)
-        for k in range(1, len(lines)):
-            spin_minus1_list[k-1] = lines[k][5]
-
-        for i in range(1, len(lines)): #starts from 1 because of overhead
-            line = lines[i]
-            linestr = ""
-            linestr += str(int(line[0])) + sp + str(round(line[1], 3)) + sp + str(line[2]) + sp
-            for s in spins:
-                for sign in signs:
-                    if s == 1 and sign == "-":
-                        linestr += str(line[5]) + sp
-                    else:
-                        if sign == "-1":
-                            sep = 0
-                        else:
-                            sep = 1
-                        linestr += str(line[3 + 2*s + sep]) + sp
-            linestr += "\n"
-            lines[i] = linestr
-        
-        with open(Settings.popfile_path, "w") as f:
-            f.writelines(lines)
-
-        
-
-        return [ex(k) for k in range(energy_bins)], spin_minus1_list
+            return [ex(k) for k in range(energy_bins)], spin_minus1_list
 
 sim = SimTool()
 
