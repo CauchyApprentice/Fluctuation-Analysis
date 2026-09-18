@@ -329,11 +329,14 @@ class SimTool:
         def __init__(self, sim):
             self.sim: SimTool = sim
 
+        def bin_width(self, q: float, energy_bins: float) -> float:
+            return q / (energy_bins - 1)
+
         def ex_energy_list(self, q: float, energy_bins: int) -> list:
             '''
             Bins an energy range from 0 up to q into equally spaced energy bins and returns the bin energies as a list.
             '''
-            h = q / (energy_bins - 1)
+            h = self.bin_width(q, energy_bins)
             ex = lambda bin: h * bin
             return [ex(bin) for bin in range(energy_bins)]
 
@@ -362,8 +365,19 @@ class SimTool:
             total = sum(dist)
             return [val / total for val in dist]
 
-        def dist_gauss_norm():
-            pass
+        def dist_gauss(self, ex_energies: list, q: float, energy_bins: int, exp_res: float) -> list:
+            dist = [self.func(ex, q) for ex in ex_energies]
+            if exp_res == 0:
+                return dist
+            elif exp_res < 0:
+                raise ValueError("exp_res has a negative value.")
+            else:
+                h = self.bin_width(q, energy_bins)
+                return gaussian_filter(dist, sigma=exp_res/h)
+
+        def dist_gauss_norm(self, ex_energies: list, q: float, energy_bins: int, exp_res: float) -> list:
+            dist_gauss = self.dist_gauss(ex_energies,q,energy_bins,exp_res)
+            return self.normalized(dist_gauss)
 
         def make_pop_file(self, *, q: float, energy_bins: int, exp_res: float = 0) -> tuple[np.ndarray, np.ndarray]:
             '''
@@ -388,7 +402,7 @@ class SimTool:
             pop_dist = self.dist(ex_energies, q)
             pop_dist_norm = self.normalized(pop_dist)
 
-            h = q / (energy_bins - 1)
+            h = self.bin_width(q, energy_bins)
             parameter[Setting.g_nExPopI] = energy_bins
             parameter[Setting.g_dExRes] = h
             parameter[Setting.popFile_name] = f'"{str(Settings.popfile_path)}"'
