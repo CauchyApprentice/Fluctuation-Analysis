@@ -50,12 +50,12 @@ class SettingsClass:
     def __init__(self):
         self.Q_76Ga = 6.9163
 
-        self.rainier_sample_folder = Path(r"C:\RAINIER\sample_folder")
+        self.rainier_sample_folder = Path(r"C:\Users\Raphael\Desktop\FAIRIES output\sample_folder")
         self.rainier_path =Path(r"C:\RAINIER")
-        self.this_dir = self.rainier_sample_folder
+        self.this_dir = Path(r"C:\Users\Raphael\Desktop\FAIRIES output")
         self.std_path = self.this_dir / "fluctuation_analysis"
-        self.root_file_folder = self.std_path / "ROOT_files"
-        self.settings_file_path = self.rainier_sample_folder / "settings.h"
+        self.root_file_folder = self.this_dir / "ROOT_files"
+        self.settings_file_path = self.root_file_folder / "settings.h"
 
         self.folder_fluct_name = "fluct input"
         self.folder_NLD_name = "nld"
@@ -152,6 +152,10 @@ class SettingsClass:
             }
         }
 
+    def file_setup(self):
+        self.this_dir.mkdir(exist_ok=True, parents=True)
+        self.std_path.mkdir(exist_ok=True, parents=True)
+        self.root_file_folder.mkdir(exist_ok=True, parents=True)
 
 
     def replace_def(self, text, param, new_def, *, print_setting = True):
@@ -204,6 +208,6 @@ class SettingsClass:
 
 Settings = SettingsClass()
 parameter = Settings.parameter
-
+Settings.file_setup()
 
 #Settings.apply_settings()
