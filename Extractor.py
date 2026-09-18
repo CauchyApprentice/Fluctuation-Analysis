@@ -26,12 +26,6 @@ class Extractor:
         energy_min = 0
         energy_max = ExI.max() #get the global simulation E_max... whatever that is
         energy_axis = np.linspace(energy_min, energy_max, energy_bin + 1)
-        #energy_axis = run.level_data[0]
-        bin_width = np.mean(np.diff(energy_axis))
-        energy_axis = np.concatenate([
-            [energy_axis[0] - bin_width / 2],
-            energy_axis + bin_width / 2
-        ])
         return np.histogram2d(JI_int, ExI, bins=[spin_axis, energy_axis])
 
     def get_fluct_data_spin(self, run: Run, *, plot: bool = True) -> tuple[np.ndarray, dict[int, np.ndarray]]:

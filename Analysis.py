@@ -33,31 +33,29 @@ class FluctuationAnalysisResult:
 
 class FluctuationAnalysisPlot:
     def __init__(self):
-        pass
+        self.linewidth = 1
 
-    def plot_fluct_data(self, energy: list, fluct_data: list, *, show_full: bool = False) -> None:
-        plt.plot(energy, fluct_data)
+    def fluct_data(self, energy: list, fluct_data: list, *, show_full: bool = False) -> None:
+        plt.step(energy, fluct_data, lw=self.linewidth)
         plt.xlabel("E in MeV")
         plt.ylabel("Total Absorption Spectrum")
         plt.title("Input data")
         if not show_full:
             plt.ylim(0,np.percentile(fluct_data, [0,99.8])[1])
 
-    def plot_nld(self, energy, nld, save_path, file_name = "myNLD.png", series = True):
-        if not series:
-            plt.figure()
-        plt.plot(energy, nld)
-        plt.xlabel("E in MeV")
-        plt.ylabel("#levels per MeV")
-        plt.title("Nuclear level density")
-        plt.yscale("log")
-        if not series:
-            plt.savefig(save_path / Settings.folder_NLD_name / file_name, dpi=300)
-            plt.close()
+    # def plot_nld(self, energy, nld, save_path, file_name = "myNLD.png", series = True):
+    #     if not series:
+    #         plt.figure()
+    #     plt.plot(energy, nld)
+    #     plt.xlabel("E in MeV")
+    #     plt.ylabel("#levels per MeV")
+    #     plt.title("Nuclear level density")
+    #     plt.yscale("log")
+    #     if not series:
+    #         plt.savefig(save_path / Settings.folder_NLD_name / file_name, dpi=300)
+    #         plt.close()
 
-    def plot_smooth(self, energy, fluct_data, fine, rough, save_path, file_name = "mySmooth.png", series = True):
-        if not series:
-            plt.figure()
+    def smooth(self, energy: list, fluct_data: list, fine: list, rough: list) -> None:
         plt.plot(energy, fluct_data)
         plt.plot(energy, fine)
         plt.plot(energy, rough)
@@ -65,11 +63,8 @@ class FluctuationAnalysisPlot:
         plt.ylabel("Coincidence")
         plt.title("Rough/fine smoothing")
         plt.yscale("log")
-        if not series:
-            plt.savefig(save_path / Settings.folder_smoothing_name / file_name, dpi=300)
-            plt.close()
 
-    def plot_stationary(self, energy, d_full, save_path, file_name, series = True):
+    def stationary(self, energy, d_full, save_path, file_name, series = True):
         if not series:
             plt.figure()
         plt.xlabel("E in MeV")
@@ -80,7 +75,7 @@ class FluctuationAnalysisPlot:
             plt.savefig(save_path / Settings.folder_stationary_name / file_name, dpi=300)
             plt.close()
 
-    def plot_autocorrelation(self, eps_start, eps_end, eps_step, energy, full_data, save_path, file_name, series = True, *, interval_low = 5, interval_high = 6):
+    def autocorrelation(self, eps_start, eps_end, eps_step, energy, full_data, save_path, file_name, series = True, *, interval_low = 5, interval_high = 6):
         epsilons = np.arange(eps_start,eps_end,eps_step)
         if not series:
             plt.figure()
@@ -107,7 +102,7 @@ class FluctuationAnalysisPlot:
             plt.savefig(save_path / Settings.folder_comparison_name / file_name, dpi=300)
             plt.close()
 
-    def plot_comparison2(self, E_int, fa_dens, nld_energy, nld, save_path, file_name, series = True, *, c_val = 1):
+    def comparison2(self, E_int, fa_dens, nld_energy, nld, save_path, file_name, series = True, *, c_val = 1):
         (save_path/"Comparison").mkdir(exist_ok=True)
         if not series:
             plt.figure()
@@ -121,7 +116,7 @@ class FluctuationAnalysisPlot:
             plt.savefig(save_path / Settings.folder_comparison_name / file_name, dpi=300)
             plt.close()
 
-    def plot_comparison3(self):
+    def comparison3(self):
         pass
 
     def helper_seriesplot(self, fa: FluctuationAnalysisResult, fa_step: FaStep, *, save_path: Path = None, file_name: str = None) -> None:
@@ -138,18 +133,17 @@ class FluctuationAnalysisPlot:
         extract_nld = fa.nld
         match fa_step:
             case FaStep.fluct:
-                self.plot_fluct_data(fluct_energy, fluct_data)
+                self.fluct_data(fluct_energy, fluct_data)
             # case FaStep.nld:
             #     self.plot_nld(nld_energy, nld, save_path, file_name)
             case FaStep.smoothing:
-                #self.plot_smooth(energy[start:finish], fluct_data[start:finish], fine[start:finish], rough[start:finish], save_path, file_name)
-                self.plot_smooth(fluct_energy, fluct_data, fine, rough, save_path, file_name)
+                self.smooth(fluct_energy, fluct_data, fine, rough)
             case FaStep.stationary:
-                self.plot_stationary(fluct_energy, stationary, save_path, file_name)
+                self.stationary(fluct_energy, stationary, save_path, file_name)
             case FaStep.autocorr:
                 pass
             case FaStep.comparison:
-                self.plot_comparison2(energy_range, extract_nld, energy_range, extract_nld, save_path, file_name)
+                self.comparison2(energy_range, extract_nld, energy_range, extract_nld, save_path, file_name)
 
 
     def create(self, fa_collection: list[FluctuationAnalysisResult], *, save_path: Path = None, file_name: str = "test", print_nld = True, print_smooth = True, print_stationary = True, print_autocorrelation = True, print_comparison = True) -> None:
