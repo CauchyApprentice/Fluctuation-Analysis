@@ -12,6 +12,7 @@ from scipy.ndimage import gaussian_filter
 from concurrent.futures import ProcessPoolExecutor
 import shutil
 import time
+import matplotlib.pyplot as plt
 
 @dataclass
 class Run:
@@ -359,21 +360,13 @@ class SimTool:
             total = sum(dist)
             return [val / total for val in dist]
 
-        def dist_gauss(self, ex_energies: list, q: float, energy_bins: int, exp_res: float) -> list:
-            dist = [self.func(ex, q) for ex in ex_energies]
-            if exp_res == 0:
-                return dist
-            elif exp_res < 0:
-                raise ValueError("exp_res has a negative value.")
-            else:
-                h = self.bin_width(q, energy_bins)
-                return gaussian_filter(dist, sigma=exp_res/h)
+        def dist(self, ex_energies: list, q: float) -> list:
+            return [self.func(ex, q) for ex in ex_energies]
 
-        def dist_gauss_norm(self, ex_energies: list, q: float, energy_bins: int, exp_res: float = 0) -> list:
-            dist_gauss = self.dist_gauss(ex_energies,q,energy_bins,exp_res)
-            return self.normalized(dist_gauss)
+        def dist_normed(self, ex_energies: list, q: float):
+            return self.normalized(self.dist(ex_energies, q))
 
-        def make_file(self, *, q: float, energy_bins: int, exp_res: float = 0) -> None:
+        def make_file(self, *, q: float, energy_bins: int) -> None:
             '''
             Creates a beta decay like population file. Applies an experimental resolution by default, can be disabled.
             '''
@@ -391,12 +384,12 @@ class SimTool:
             lines.append(overhead)
 
             ex_energies = self.ex_energy_list(q, energy_bins)
-            pop_dist_norm = self.dist_gauss_norm(ex_energies, q, exp_res)
+            pop_dist_normed = self.dist_normed(ex_energies, q)
 
             h = self.bin_width(q, energy_bins)
             parameter[Setting.g_nExPopI] = energy_bins
             parameter[Setting.g_dExRes] = h
-            parameter[Setting.popFile_name] = f'"{str(Settings.popfile_path)}"'
+            parameter[Setting.popFile_name] = f'"{str(Settings.popfile_path).replace("\\", "\\\\")}"'
             parameter[Setting.g_dExIMax] = q
             Settings.apply_settings(print_setting=False)
 
@@ -410,7 +403,8 @@ class SimTool:
                     for sign in signs:
                         if s == 1 and sign == "-":
                             if ex_energies[k] <= q:
-                                line[5] = pop_dist_norm[k]
+                                line[5] = pop_dist_normed[k] * 100
+                                line[2] = line[5]
                             else:
                                 line[5] = 0
                         else:
@@ -437,7 +431,8 @@ class SimTool:
                             linestr += str(line[3 + 2*s + sep]) + sp
                 linestr += "\n"
                 lines[i] = linestr
-            
+
+            Settings.popfile_path.parent.mkdir(exist_ok=True, parents=True)
             with open(Settings.popfile_path, "w") as f:
                 f.writelines(lines)
 
