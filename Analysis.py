@@ -138,7 +138,7 @@ class FluctuationAnalysisPlot:
         extract_nld = fa.nld
         match fa_step:
             case FaStep.fluct:
-                self.plot_fluct_data(fluct_energy, fluct_data, save_path, file_name)
+                self.plot_fluct_data(fluct_energy, fluct_data)
             # case FaStep.nld:
             #     self.plot_nld(nld_energy, nld, save_path, file_name)
             case FaStep.smoothing:
