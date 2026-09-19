@@ -5,10 +5,26 @@ from matplotlib.colors import LogNorm
 import uproot
 from Settings import Setting, Settings, parameter
 from SimTool import Run
+from scipy.stats import norm
 
 class Extractor:
     def __init__(self):
         pass
+
+    def apply_resolution(self, energy: list[float], data: list[float]) -> list:
+        h = np.mean(np.diff(energy)) #bin width
+        bin_center = lambda i: energy[i] + h/2
+        smeared = [0.0 for _ in data] #copying data; initializing smeared list
+        sigma = lambda i: parameter[Setting.exp_resolution]
+        for j in range(len(data)):
+            weights = (
+                norm.cdf(energy[1:], loc=bin_center(j), scale=sigma(j))
+                -
+                norm.cdf(energy[:-1], loc=bin_center(j), scale=sigma(j))
+            )
+            smeared += data[:-1][j] * weights
+        return smeared
+                
 
     def pop_EJ(self, run: Run, *, spin_spacing = 1):
         energy_bin = parameter[Setting.fluct_bin]
@@ -37,13 +53,20 @@ class Extractor:
             plt.title("EJ counts")
             plt.xlabel("J[hbar]")
             plt.ylabel("Ex[MeV]")
+        print(energy_edges.shape)
         energy = 1/2 * (energy_edges[1:] + energy_edges[:-1])
+        print(energy.shape)
         fluct_data_dict = {}
         spins = spin_edges[:-1]
         for k in range(len(spins)):
             spin = spins[k]
             fluct_data_dict[int(spin)] = counts[k]
         return (energy, fluct_data_dict)
+
+    def spectrum_smeared(self, run: Run, *, plot: bool = True) -> tuple[list, list]:
+        energy, fluct_data_dict = self.get_fluct_data_spin(run, plot=plot)
+        data = fluct_data_dict[-1]
+        return energy, self.apply_resolution(energy, data)
         
 
 extract = Extractor()
