@@ -418,7 +418,7 @@ class SimTool:
             for i in range(1, len(lines)): #starts from 1 because of overhead
                 line = lines[i]
                 linestr = ""
-                linestr += str(int(line[0])) + sp + str(round(line[1], 3)) + sp + str(line[2]) + sp
+                linestr += str(int(line[0])) + sp + str(line[1]) + sp + str(line[2]) + sp#str(round(line[1], 3))
                 for s in spins:
                     for sign in signs:
                         if s == 1 and sign == "-":

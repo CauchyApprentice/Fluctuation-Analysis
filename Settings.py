@@ -57,6 +57,7 @@ class SettingsClass:
         self.rainier_path =Path(r"C:\RAINIER")
         self.this_dir = Path(r"C:\FAIRIES output")
         self.std_path = self.this_dir / "fluctuation_analysis"
+        self.run_folder = self.this_dir / "RUNS"
         self.root_file_folder = self.this_dir / "ROOT_files"
         self.settings_file_path = self.root_file_folder / "settings.h"
         self.popfile_path = self.root_file_folder / self.popfile_name
@@ -76,7 +77,6 @@ class SettingsClass:
             Setting.g_nEvent : 100,
             Setting.g_nConSpbMax : 21,
             Setting.g_nDisLvlMax : 1,
-            Setting.exp_resolution : 0.05,
             Setting.g_dExIMax : self.Q_76Ga, #ONLY WORKS FOR THE bExFullRxn atm LOOK DEFINER
             Setting.g_dExRes : 0.00098818402628947, #same as above
             Setting.g_nExPopI : 7000, #same as above
@@ -89,6 +89,8 @@ class SettingsClass:
             #NLD.CTM_g_dTemp : 0.48473, this is problematic because it overwrites the upper entries
             #NLD.CTM_dE0 : -1.31817,
             #NLD.BSFG_g_dE1 : 0.968,
+
+            Setting.exp_resolution : 0.05,
 
             Setting.exci_mode : EXCI.full_rxn,
 
