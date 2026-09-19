@@ -63,7 +63,6 @@ class SettingsClass:
         self.popfile_path = self.root_file_folder / self.popfile_name
 
         self.folder_fluct_name = "fluct input"
-        self.folder_NLD_name = "nld"
         self.folder_smoothing_name = "smoothing"
         self.folder_stationary_name = "stationary"
         self.folder_autocorr_name = "autocorrelation"

@@ -63,6 +63,8 @@ class Extractor:
     def spectrum_smeared(self, run: Run, *, exp_res: float = 0.001, plot: bool = False) -> tuple[list, list]:
         energy, fluct_data_dict = self.get_fluct_data_spin(run, plot=plot)
         data = fluct_data_dict[-1]
+        if exp_res == 0:
+            return energy, data
         return energy, self.apply_resolution(energy, data, exp_res)
         
 
