@@ -59,7 +59,6 @@ class FluctuationAnalysisPlot:
         plt.xlabel("E in MeV")
         plt.ylabel("Coincidence")
         plt.title("Rough/fine smoothing")
-        plt.yscale("log")
 
     def stationary(
             self,
@@ -103,11 +102,13 @@ class FluctuationAnalysisPlot:
             scaled_pop_dist = [prob * scalar for prob in pop_dist]
             plt.plot(data_energy, scaled_pop_dist, color="grey", alpha=0.8) #JUST TEMPORARY THE Q VALUE REMEMBER
         plt.plot(data_energy, [func.rho(e) for e in data_energy])
+        plt.ylim(0,1e7)
         plt.scatter(energy_range, nld, color="purple", facecolors="none")
         plt.yscale("log")
         plt.title("Original NLD and extracted NLD")
         plt.xlabel("E / MeV")
         plt.ylabel("#levels per MeV")
+        
 
     def helper_seriesplot(
             self,
