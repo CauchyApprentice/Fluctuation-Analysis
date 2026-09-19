@@ -107,7 +107,7 @@ class FluctuationAnalysisPlot:
         if not series:
             plt.figure()
         plt.plot(nld_energy, [func.rho(e) for e in nld_energy])
-        plt.scatter(E_int, fa_dens, color="purple")
+        plt.scatter(E_int, fa_dens, color="purple", facecolors="none")
         plt.yscale("log")
         plt.title("Original NLD and extracted NLD")
         plt.xlabel("E in MeV")
@@ -247,9 +247,8 @@ class FluctuationAnalysis:
 
     @fluctuation_analysis.register
     def _(self, run: Run):
-        energy, fluct_data_dict = extract.get_fluct_data_spin(run,plot=False)
-        fluct_data = fluct_data_dict[-1]
-        return self.fluctuation_analysis(energy, fluct_data)
+        energy, smeared_data = extract.spectrum_smeared(run,plot=False,exp_res=parameter[Setting.exp_resolution])
+        return self.fluctuation_analysis(energy, smeared_data)
 
     def iterate(self, energy, fluct_data, nld_energy, nld, param, param_range):
         param0 = parameter[param]
