@@ -61,6 +61,7 @@ class SettingsClass:
         self.root_file_folder = self.this_dir / "ROOT_files"
         self.settings_file_path = self.root_file_folder / "settings.h"
         self.popfile_path = self.root_file_folder / self.popfile_name
+        self.parallel_path = self.this_dir / "PARALLEL"
 
         self.folder_fluct_name = "fluct input"
         self.folder_smoothing_name = "smoothing"
@@ -161,6 +162,7 @@ class SettingsClass:
         self.this_dir.mkdir(exist_ok=True, parents=True)
         self.std_path.mkdir(exist_ok=True, parents=True)
         self.root_file_folder.mkdir(exist_ok=True, parents=True)
+        self.parallel_path.mkdir(exist_ok=True, parents=True)
 
 
     def replace_def(self, text, param, new_def, *, print_setting = True):
@@ -196,7 +198,7 @@ class SettingsClass:
 
     def apply_settings(self, *, parameter_ref = None, print_setting: bool = True, execution_path: Path = None) -> None:
         if execution_path is None:
-            execution_path = self.root_file_folder
+            execution_path = self.settings_file_path.parent
         if parameter_ref is None:
             parameter_ref = self.parameter
         with open(execution_path / "settings.h", "r") as f:

@@ -130,11 +130,11 @@ class FluctuationAnalysisPlot:
             case FaStep.smoothing:
                 self.smooth(fluct_energy, fluct_data, fine, rough)
             case FaStep.stationary:
-                self.stationary(fluct_energy, stationary, file_name=file_name)
+                self.stationary(fluct_energy, stationary)
             case FaStep.autocorr:
                 pass
             case FaStep.comparison:
-                self.comparison(energy_range, extract_nld, fluct_energy, file_name=file_name, run=run)
+                self.comparison(energy_range, extract_nld, fluct_energy, run=run)
 
     def init_folders(self) -> None:
         (Settings.std_path/Settings.folder_fluct_name).mkdir(exist_ok=True, parents=True)

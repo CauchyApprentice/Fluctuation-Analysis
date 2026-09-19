@@ -26,7 +26,6 @@ class Extractor:
             smeared += data[j] * weights
         return smeared
                 
-
     def pop_EJ(self, run: Run, *, spin_spacing = 1):
         energy_bins = parameter[Setting.fluct_bin]
         tree = run.root_tree

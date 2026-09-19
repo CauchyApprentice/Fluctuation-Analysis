@@ -85,7 +85,7 @@ class SimTool:
             spin_dict[str(s)] = spin_array[k]
         return (energy,spin_dict)   
 
-    def simple_run(self, *, print_setting: bool = True, execution_path: Path = None, parameter_ref: dict[Setting, Any] = None) -> str:
+    def simple_run(self, *, print_setting: bool = True, execution_path: Path = None, parameter_ref: dict[Setting, Any] = None, do_apply_settings: bool = True) -> str:
         if parameter_ref is None:
             parameter_ref = parameter
         if execution_path is None:
@@ -95,14 +95,15 @@ class SimTool:
         execution_path.mkdir(parents=True, exist_ok=True)
         while True:
             try:
-                Settings.apply_settings(print_setting=print_setting,parameter_ref=parameter_ref,execution_path=execution_path)
+                if do_apply_settings:
+                    Settings.apply_settings(print_setting=print_setting,parameter_ref=parameter_ref,execution_path=execution_path)
                 if not (execution_path / "settings.h").exists():
                     shutil.copy(Settings.settings_file_path, execution_path / "settings.h")
                 break
             except PermissionError:
                 print("Tried to copy settings.h to execution path and failed.")
                 time.sleep(2)
-        return subprocess.run(["cmd", "/c", "root", str(Settings.rainier_path / "RAINIER.C")], capture_output=True, text=True, cwd=execution_path).stdout
+        return subprocess.run(["cmd", "/c", "root", str(Settings.rainier_path / "modRAINIER.C")], capture_output=True, text=True, cwd=execution_path).stdout
 
     def run_simulation(self, *, save_path: Path = None, file_name: str = None, print_setting: bool = True, execution_path: Path = None) -> None:
         if file_name == None:
@@ -152,33 +153,38 @@ class SimTool:
             self.sim: SimTool = sim
             self.subfolder_name = "PARALLEL"
 
-        def run(self, *, events: int, max_workers: int = 10, save_path: Path = None) -> None:
+        def clear_parallel_folder(self):
+            shutil.rmtree(Settings.parallel_path)
+
+        def run_parallels(self, *, events: int, max_workers: int = 10, save_path: Path = None) -> None:
             '''
             Runs a simulation with a given event number by redistributing the events across parallel simulation on different cpu cores.
             '''
             if save_path is None:
-                save_path = Settings.std_path
+                save_path = Settings.this_dir
             partial_events = events // max_workers
             save_folder = save_path / self.subfolder_name
-            save_folder.mkdir(parents=True)
+            save_folder.mkdir(parents=True, exist_ok=True)
             worker_folder_name = lambda worker: "Worker "+str(worker+1)
+            parameter[Setting.g_nEvent] = partial_events
+            Settings.apply_settings(print_setting=False)
             for worker in range(max_workers):
                 worker_folder = save_folder / worker_folder_name(worker)
                 worker_folder.mkdir()
                 shutil.copy2(Settings.settings_file_path, worker_folder / "settings.h")
-            ev0 = parameter[Setting.g_nEvent]
-            parameter[Setting.g_nEvent] = partial_events
             with ProcessPoolExecutor(max_workers=max_workers) as executor:
                 futures = [executor.submit(
                     sim.simple_run,
                     print_setting=False,
                     execution_path=save_folder / worker_folder_name(worker),
-                    parameter_ref=parameter
+                    parameter_ref=parameter,
+                    do_apply_settings=False
                 ) for worker in range(max_workers)]
 
                 for future in futures:
                     future.result()
-            parameter[Setting.g_nEvent] = ev0
+            parameter[Setting.g_nEvent] = events
+            Settings.apply_settings(print_setting=False)
 
         def collect_root_files(self, *, save_path: Path) -> None:
             parallel_folder = save_path / self.subfolder_name
@@ -212,6 +218,44 @@ class SimTool:
                                         name1="temp.root",
                                         name2=file_names[k])
                 (folder_path / "temp.root").unlink()
+
+        def delete_remaining_files(self, *, save_path: Path):
+            parallel_folder = save_path / self.subfolder_name
+            for file in parallel_folder.iterdir():
+                if file.name != "combined.root":
+                    (parallel_folder / file.name).unlink()
+
+        def save_as_readable(self, *, events: int, root_source: Path, destination: Path = None):
+            if destination is None:
+                destination = Settings.run_folder
+            this_run = destination / ("g_nEvent_"+str(events))
+            this_run.mkdir(exist_ok=True, parents=True)
+            run_text = ""
+            with open(this_run / ("g_nEvent_"+str(events)+".txt"), "w") as file:
+                file.write(run_text)
+            with open(this_run / (sim.settings_file_name+".txt"), "w") as file:
+                for key in parameter:
+                    file.write(Setting(key).name+" : "+str(parameter[key])+"\n")
+            shutil.copy2(root_source, this_run)
+            root_source.unlink()
+
+        def run(
+                self,
+                *,
+                events: int,
+                max_workers: int,
+                save_path: Path
+        ):
+            parallel_path = Settings.this_dir
+            self.run_parallels(events=events,max_workers=max_workers,save_path=parallel_path)
+            self.collect_root_files(save_path=parallel_path)
+            self.add_root_files(save_path=parallel_path)
+            self.delete_remaining_files(save_path=parallel_path)
+            self.save_as_readable(
+                events=events,
+                root_source=parallel_path / self.subfolder_name / "combined.root",
+                destination=save_path
+                )
 
     def iterate(self, param: Setting, param_range: list, *, save_path: Path = None) -> None:
         if save_path == None:
@@ -262,7 +306,10 @@ class SimTool:
                             settings[Setting[param]] = converted
                     else:
                         run_text = f.read()
-                        level_data = self.from_runtext_get_nld_energy_nld_dict(run_text)
+                        if run_text != "":
+                            level_data = self.from_runtext_get_nld_energy_nld_dict(run_text)
+                        else:
+                            level_data = ([],{})
             else:
                 with uproot.open(file) as f:
                     tree = f["tree;1"]
