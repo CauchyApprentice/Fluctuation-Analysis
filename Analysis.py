@@ -68,6 +68,7 @@ class FluctuationAnalysisPlot:
         plt.xlabel("E in MeV")
         plt.ylabel("'relative fluctuations'")
         plt.title("Stationary spectrum")
+        plt.ylim(0.5,1.5)
         plt.plot(energy, stationary)
 
     def autocorrelation(self, eps_start, eps_end, eps_step, energy, full_data, save_path, file_name, series = True, *, interval_low = 5, interval_high = 6):
@@ -102,7 +103,7 @@ class FluctuationAnalysisPlot:
             scaled_pop_dist = [prob * scalar for prob in pop_dist]
             plt.plot(data_energy, scaled_pop_dist, color="grey", alpha=0.8) #JUST TEMPORARY THE Q VALUE REMEMBER
         plt.plot(data_energy, [func.rho(e) for e in data_energy])
-        plt.ylim(0,1e7)
+        plt.ylim(1,1e7)
         plt.scatter(energy_range, nld, color="purple", facecolors="none")
         plt.yscale("log")
         plt.title("Original NLD and extracted NLD")
@@ -225,11 +226,14 @@ class FluctuationAnalysis:
         ) -> FluctuationAnalysisResult:
 
         bin_width = self.get_energy_width(energy)
-        if exp_res == 0:
-            sigma_fine = 0.001
-        else:
-            sigma_fine = exp_res/2
-        sigma_rough = 3*sigma_fine
+        # if exp_res == 0:
+        #     sigma_fine = 0.001
+        # else:
+        #     sigma_fine = exp_res/2
+        # sigma_rough = 3*sigma_fine
+        sigma_fine = 0.005
+        sigma_rough = 0.03
+
         fine, rough = self.get_smooth(fluct_data, bin_width, sigma_fine, sigma_rough)
         stationary = fine/rough
 

@@ -13,9 +13,10 @@ class Extractor:
 
     def apply_resolution(self, energy: list[float], data: list[float], exp_res: float) -> list:
         h = np.mean(np.diff(energy)) #bin width
-        energy_edges = energy + [max(energy)+h]
+        energy_left = [en - h/2 for en in energy]
+        energy_edges = energy_left + [max(energy_left)+h]
         bin_center = lambda i: energy_edges[i] + h/2
-        smeared = [0.0 for _ in data] #copying data; initializing smeared list
+        smeared = np.zeros(len(data)) #initializing smeared list
         sigma = lambda i: exp_res
         for j in range(len(data)):
             weights = (
@@ -25,7 +26,33 @@ class Extractor:
             )
             smeared += data[j] * weights
         return smeared
-                
+
+    def get_total_counts(
+            self,
+            run: Run
+    ) -> tuple:
+        q = Settings.Q_76Ga
+        energy_bins = 7000
+        ExI = run.root_tree["ExI"]
+        bin_energy = lambda k: q * k / (energy_bins - 1)
+        find_bin_ind = lambda en: int(np.floor(en*(energy_bins-1)/q))
+        bin_list = [0.0 for _ in range(energy_bins)]
+        for ex in ExI:
+            bin_list[find_bin_ind(ex)] += 1
+        return bin_list
+
+    def get_just_energies(
+            self,
+            run: Run
+    ) -> dict:
+        ExI = run.root_tree["ExI"]
+        data_dict = {}
+        for ex in ExI:
+            data_dict[ex] = 0
+        for ex in ExI:
+            data_dict[ex] += 1
+        return data_dict
+
     def pop_EJ(self, run: Run, *, spin_spacing = 1):
         energy_bins = parameter[Setting.fluct_bin]
         tree = run.root_tree

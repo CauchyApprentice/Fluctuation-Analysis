@@ -73,14 +73,14 @@ class SettingsClass:
             Setting.g_nReal : 1,
             Setting.g_nZ : 32,
             Setting.g_nAMass : 76,
-            Setting.g_nConEBin : 7000,
+            Setting.g_nConEBin : 2000,
             Setting.g_nEvent : 100,
             Setting.g_nConSpbMax : 21,
             Setting.g_nDisLvlMax : 1,
             Setting.g_dExIMax : self.Q_76Ga, #ONLY WORKS FOR THE bExFullRxn atm LOOK DEFINER
-            Setting.g_dExRes : 0.00098818402628947, #same as above
-            Setting.g_nExPopI : 7000, #same as above
-            Setting.popFile_name : r'"C:\\RAINIER\\sample_folder\\createdPopFile.dat"',
+            Setting.g_dExRes : 0.003459879939969985, #same as above
+            Setting.g_nExPopI : 2000, #same as above
+            Setting.popFile_name : r'"C:\\FAIRIES output\\ROOT_files\\createdPopFile.dat"',
 
             Setting.sim_bin_width : 0.05,
 
@@ -96,7 +96,7 @@ class SettingsClass:
 
             Setting.alpha_parameter : 0.273, #with PT 2.273
             Setting.analysis_E_step : 0.5,
-            Setting.fluct_bin : 7000,
+            Setting.fluct_bin : 2000,
 
             Setting.analysis_E_start : 0,
             Setting.analysis_E_end : 7,
