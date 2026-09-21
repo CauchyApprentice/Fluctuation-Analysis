@@ -179,6 +179,30 @@ class FluctuationAnalysisPlot:
         (Settings.std_path/Settings.folder_comparison_name).mkdir(exist_ok=True, parents=True)
 
     def create(
+        self,
+        runs: list[Run],
+        *,
+        exp_res: float = 0.0,
+        figsize: tuple[float, float] = None,
+        ) -> None:
+        self.init_folders()
+        fa_list = []
+        for run in runs:
+            fa = fluc.fluctuation_analysis(run, exp_res = exp_res)
+            for step in FaStep:
+                plt.figure()
+                self.helper_seriesplot(fa, step, file_name=str(int(run.settings[Setting.g_nEvent])), run=run)
+                plt.savefig(Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (str(int(run.settings[Setting.g_nEvent]))+".png"), dpi = 300)
+                plt.close()
+        for step in FaStep:
+            plt.figure()
+            for run in runs:
+                fa = fluc.fluctuation_analysis(run, exp_res = exp_res)
+                self.helper_seriesplot(fa, step, file_name="combined", run=run)
+            plt.savefig(Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"), dpi = 300)
+            plt.close()
+
+    def create_by_fa(
             self,
             fa: FluctuationAnalysisResult | list[FluctuationAnalysisResult],
             *,
