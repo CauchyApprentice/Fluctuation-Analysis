@@ -174,7 +174,7 @@ class FluctuationAnalysisPlot:
             fa = run_fa[k]
             for step in FaStep:
                 plt.figure()
-                self.helper_seriesplot(fa, step, file_name=str(int(run.settings[iter_setting])), run=run)
+                self.helper_seriesplot(fa, step, label=str(int(run.settings[iter_setting])), run=run)
                 plt.savefig(
                     Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (str(int(run.settings[Setting.g_nEvent]))+".png"),
                     dpi = 300,
@@ -186,7 +186,7 @@ class FluctuationAnalysisPlot:
                 for k in range(len(runs)):
                     run = runs[k]
                     fa = run_fa[k]
-                    self.helper_seriesplot(fa, step, file_name="combined", run=run)
+                    self.helper_seriesplot(fa, step, label="combined", run=run)
                 plt.savefig(
                     Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"),
                     dpi = 300,
