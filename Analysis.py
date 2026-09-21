@@ -40,12 +40,9 @@ class FluctuationAnalysisPlot:
             fluct_data: list,
             *,
             show_full: bool = False,
-            run: Run = None
+            run: Run = None,
+            label: str = ""
             ) -> None:
-        if run is not None:
-            label = str(int(run.settings[Setting.g_nEvent]))+" events"
-        else:
-            label = ""
         plt.step(energy, fluct_data, lw=self.linewidth, label=label)
         if run is not None:
             energy, data = extract.get_fluct_data(run)
@@ -65,12 +62,9 @@ class FluctuationAnalysisPlot:
             fine: list,
             rough: list,
             *,
-            run: Run = None
+            run: Run = None,
+            label: str = ""
             ) -> None:
-        if run is not None:
-            label = str(int(run.settings[Setting.g_nEvent]))+" events"
-        else:
-            label = ""
         plt.plot(energy, fluct_data, label=label)
         plt.plot(energy, fine)
         plt.plot(energy, rough)
@@ -84,16 +78,13 @@ class FluctuationAnalysisPlot:
             energy: list,
             stationary: list,
             *,
-            run: Run = None
+            run: Run = None,
+            label: str = ""
             ) -> None:
         plt.xlabel("E in MeV")
         plt.ylabel("'relative fluctuations'")
         plt.title("Stationary spectrum")
         plt.ylim(0.5,1.5)
-        if run is not None:
-            label = str(int(run.settings[Setting.g_nEvent]))+" events"
-        else:
-            label = ""
         plt.plot(energy, stationary, label=label)
         plt.legend()
 
@@ -125,31 +116,24 @@ class FluctuationAnalysisPlot:
             data_energy: list,
             *,
             run: Run = None,
-            name: str = ""
+            label: str = ""
             ) -> None:
-        if run is not None:
-            label = str(int(run.settings[Setting.g_nEvent]))+" events"
-        else:
-            label = ""
         self.pop_dist_comp(run, data_energy, nld)
-        plt.plot(data_energy, [func.rho(e) for e in data_energy], color="blue")
-        plt.ylim(1,1e7)
+        plt.plot(data_energy, [func.rho(e) * 10*10 for e in data_energy], color="blue")
         plt.scatter(energy_range, nld, marker="^", label=label)
-        plt.legend()
+        plt.ylim(1,1e10)
+        plt.legend(loc="center left",bbox_to_anchor=(1.02, 0.5))
         plt.yscale("log")
         plt.title("Original NLD and extracted NLD")
         plt.xlabel("E / MeV")
         plt.ylabel("#levels per MeV")
-
-    
-        
 
     def helper_seriesplot(
             self,
             fa: FluctuationAnalysisResult,
             fa_step: FaStep,
             *,
-            file_name: str = "unnamed_fluc_ana",
+            label: str = "no label",
             run: Run = None
             ) -> None:
         fluct_energy = fa.fluct_energy
@@ -161,15 +145,15 @@ class FluctuationAnalysisPlot:
         extract_nld = fa.nld
         match fa_step:
             case FaStep.fluct:
-                self.fluct_data(fluct_energy, fluct_data, run=run)
+                self.fluct_data(fluct_energy, fluct_data, run=run, label=label)
             case FaStep.smoothing:
-                self.smooth(fluct_energy, fluct_data, fine, rough, run=run)
+                self.smooth(fluct_energy, fluct_data, fine, rough, run=run, label=label)
             case FaStep.stationary:
-                self.stationary(fluct_energy, stationary, run=run)
+                self.stationary(fluct_energy, stationary, run=run, label=label)
             case FaStep.autocorr:
                 pass
             case FaStep.comparison:
-                self.comparison(energy_range, extract_nld, fluct_energy, run=run)
+                self.comparison(energy_range, extract_nld, fluct_energy, run=run, label=label)
 
     def init_folders(self) -> None:
         (Settings.std_path/Settings.folder_fluct_name).mkdir(exist_ok=True, parents=True)
@@ -181,32 +165,89 @@ class FluctuationAnalysisPlot:
     def create(
         self,
         runs: list[Run],
+        iter_setting: Setting,
         *,
-        exp_res: float = 0.0,
         figsize: tuple[float, float] = None,
         ) -> None:
         self.init_folders()
-        fa_list = []
-        for run in runs:
-            fa = fluc.fluctuation_analysis(run, exp_res = exp_res)
+        run_fa = [fluc.fluctuation_analysis(run) for run in runs]
+        for k in range(len(runs)):
+            run = runs[k]
+            fa = run_fa[k]
             for step in FaStep:
                 plt.figure()
-                self.helper_seriesplot(fa, step, file_name=str(int(run.settings[Setting.g_nEvent])), run=run)
-                plt.savefig(Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (str(int(run.settings[Setting.g_nEvent]))+".png"), dpi = 300)
+                self.helper_seriesplot(fa, step, file_name=str(int(run.settings[iter_setting])), run=run)
+                plt.savefig(
+                    Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (str(int(run.settings[Setting.g_nEvent]))+".png"),
+                    dpi = 300,
+                    bbox_inches = "tight")
                 plt.close()
+        if len(runs) > 1:
+            for step in FaStep:
+                plt.figure()
+                for k in range(len(runs)):
+                    run = runs[k]
+                    fa = run_fa[k]
+                    self.helper_seriesplot(fa, step, file_name="combined", run=run)
+                plt.savefig(
+                    Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"),
+                    dpi = 300,
+                    bbox_inches = "tight")
+                plt.close()
+
+    def from_val_get_valid_file_name(self, val: float):
+        pass
+
+    def label(self, iter_setting: Setting, value: Any):
+        if isinstance(value, int):
+            modified = value
+        elif isinstance(value, float):
+            modified = str(int(value*1e3))+"keV"
+        else:
+            print("cant find label for that value type")
+        return iter_setting.name+modified
+
+    def iter_analysis_param(
+            self,
+            run: Run,
+            iter_setting: Setting,
+            iter_range: list,
+            *,
+            plot_single: bool = False
+            ) -> None:
+        self.init_folders()
+        if plot_single:
+            for param in iter_range:
+                param0 = parameter[iter_setting]
+                parameter[iter_setting] = param
+                fa = fluc.fluctuation_analysis(run)
+                for step in FaStep:
+                    plt.figure()
+                    self.helper_seriesplot(fa, step, label=self.label(iter_setting,param), run=run)
+                    plt.savefig(
+                        Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (self.label(iter_setting,param)+".png"),
+                        dpi = 300,
+                        bbox_inches = "tight")
+                    plt.close()
+                parameter[iter_setting] = param0
         for step in FaStep:
             plt.figure()
-            for run in runs:
-                fa = fluc.fluctuation_analysis(run, exp_res = exp_res)
-                self.helper_seriesplot(fa, step, file_name="combined", run=run)
-            plt.savefig(Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"), dpi = 300)
+            for param in iter_range:
+                param0 = parameter[iter_setting]
+                parameter[iter_setting] = param
+                fa = fluc.fluctuation_analysis(run)
+                self.helper_seriesplot(fa, step, label=self.label(iter_setting,param), run=run)
+                parameter[iter_setting] = param0
+            plt.savefig(
+                Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"),
+                dpi = 300,
+                bbox_inches = "tight")
             plt.close()
 
     def create_by_fa(
             self,
-            fa: FluctuationAnalysisResult | list[FluctuationAnalysisResult],
+            fa: list[FluctuationAnalysisResult],
             *,
-            file_name: str = "unnamed_fluc_ana",
             figsize: tuple[float, float] = None,
             run: Run | list[Run] = None
             ) -> None:
@@ -284,19 +325,12 @@ class FluctuationAnalysis:
     def fluctuation_analysis(
         self,
         energy: list,
-        fluct_data: list,
-        *,
-        exp_res: float = 0
+        fluct_data: list
         ) -> FluctuationAnalysisResult:
 
         bin_width = self.get_energy_width(energy)
-        # if exp_res == 0:
-        #     sigma_fine = 0.001
-        # else:
-        #     sigma_fine = exp_res/2
-        # sigma_rough = 3*sigma_fine
-        sigma_fine = 0.005
-        sigma_rough = 0.03
+        sigma_fine = 0.003
+        sigma_rough = 0.005
 
         fine, rough = self.get_smooth(fluct_data, bin_width, sigma_fine, sigma_rough)
         stationary = fine/rough
@@ -317,10 +351,9 @@ class FluctuationAnalysis:
     def _(
         self,
         run: Run,
-        *,
-        exp_res: float = 0):
-        energy, smeared_data = extract.spectrum_smeared(run,plot=False,exp_res=exp_res)
-        return self.fluctuation_analysis(energy, smeared_data,exp_res=exp_res)
+        ):
+        energy, smeared_data = extract.spectrum_smeared(run,plot=False,exp_res=parameter[Setting.exp_resolution])
+        return self.fluctuation_analysis(energy, smeared_data)
 
     def iterate(self, energy, fluct_data, nld_energy, nld, param, param_range):
         param0 = parameter[param]

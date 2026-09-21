@@ -97,7 +97,7 @@ class SettingsClass:
             #NLD.CTM_dE0 : -1.31817,
             #NLD.BSFG_g_dE1 : 0.968,
 
-            Setting.exp_resolution : 0.05,
+            Setting.exp_resolution : 0.004,
 
             Setting.exci_mode : EXCI.full_rxn,
 
