@@ -39,21 +39,18 @@ class FluctuationAnalysisPlot:
             energy: list,
             fluct_data: list,
             *,
-            show_full: bool = False,
+            hide_exact_data: bool = False,
             run: Run = None,
             label: str = ""
             ) -> None:
         plt.step(energy, fluct_data, lw=self.linewidth, label=label)
-        if run is not None:
+        if not hide_exact_data:
             energy, data = extract.get_fluct_data(run)
             plt.plot(energy, data, color="grey", alpha=0.5)
         plt.xlabel("E / MeV")
         plt.ylabel("Total Absorption Spectrum")
         plt.legend()
         plt.title("Experimental spectrum")
-        if not show_full:
-            pass
-            #plt.ylim(0,np.percentile(fluct_data, [0,99.8])[1])
 
     def smooth(
             self,
@@ -134,7 +131,8 @@ class FluctuationAnalysisPlot:
             fa_step: FaStep,
             *,
             label: str = "no label",
-            run: Run = None
+            run: Run = None,
+            fluct_data_hide_exact_data: bool = False
             ) -> None:
         fluct_energy = fa.fluct_energy
         fluct_data = fa.fluct_data
@@ -145,7 +143,7 @@ class FluctuationAnalysisPlot:
         extract_nld = fa.nld
         match fa_step:
             case FaStep.fluct:
-                self.fluct_data(fluct_energy, fluct_data, run=run, label=label)
+                self.fluct_data(fluct_energy, fluct_data, run=run, label=label, hide_exact_data=fluct_data_hide_exact_data)
             case FaStep.smoothing:
                 self.smooth(fluct_energy, fluct_data, fine, rough, run=run, label=label)
             case FaStep.stationary:
@@ -236,7 +234,7 @@ class FluctuationAnalysisPlot:
                 param0 = parameter[iter_setting]
                 parameter[iter_setting] = param
                 fa = fluc.fluctuation_analysis(run)
-                self.helper_seriesplot(fa, step, label=self.label(iter_setting,param), run=run)
+                self.helper_seriesplot(fa, step, label=self.label(iter_setting,param), run=run, fluct_data_hide_exact_data=True)
                 parameter[iter_setting] = param0
             plt.savefig(
                 Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"),
@@ -249,7 +247,8 @@ class FluctuationAnalysisPlot:
             fa: list[FluctuationAnalysisResult],
             *,
             figsize: tuple[float, float] = None,
-            run: Run | list[Run] = None
+            run: Run | list[Run] = None,
+            file_name: str
             ) -> None:
         if isinstance(fa, FluctuationAnalysisResult):
             single = True
