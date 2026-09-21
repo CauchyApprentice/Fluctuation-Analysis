@@ -6,6 +6,13 @@ class Func:
         self.CTM_temp = 0.48473
         self.CTM_E0 = -1.31817
 
+    def isint(self,val):
+        try:
+            int(val)
+            return True
+        except:
+            return False
+
     def spin_co_sqr(self):
         return 0.0145* parameter[Setting.g_nAMass] ** (5/3) * self.CTM_temp
 

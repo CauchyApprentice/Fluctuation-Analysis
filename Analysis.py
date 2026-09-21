@@ -160,6 +160,15 @@ class FluctuationAnalysisPlot:
         (Settings.std_path/Settings.folder_autocorr_name).mkdir(exist_ok=True, parents=True)
         (Settings.std_path/Settings.folder_comparison_name).mkdir(exist_ok=True, parents=True)
 
+    def label(self, iter_setting: Setting, value: Any):
+        if func.isint(value):
+            modified = f"{value:,}"
+        elif isinstance(value, float):
+            modified = str(int(value*1e3))+"keV"
+        else:
+            print("cant find label for that value type")
+        return iter_setting.name+modified
+
     def create(
         self,
         runs: list[Run],
@@ -174,9 +183,9 @@ class FluctuationAnalysisPlot:
             fa = run_fa[k]
             for step in FaStep:
                 plt.figure()
-                self.helper_seriesplot(fa, step, label=str(int(run.settings[iter_setting])), run=run)
+                self.helper_seriesplot(fa, step, label=self.label(iter_setting, run.settings[iter_setting]), run=run)
                 plt.savefig(
-                    Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (str(int(run.settings[Setting.g_nEvent]))+".png"),
+                    Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (self.label(iter_setting,run.settings[iter_setting])+".png"),
                     dpi = 300,
                     bbox_inches = "tight")
                 plt.close()
@@ -186,7 +195,7 @@ class FluctuationAnalysisPlot:
                 for k in range(len(runs)):
                     run = runs[k]
                     fa = run_fa[k]
-                    self.helper_seriesplot(fa, step, label="combined", run=run)
+                    self.helper_seriesplot(fa, step, label=self.label(iter_setting,run.settings[iter_setting]), run=run)
                 plt.savefig(
                     Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"),
                     dpi = 300,
@@ -196,14 +205,7 @@ class FluctuationAnalysisPlot:
     def from_val_get_valid_file_name(self, val: float):
         pass
 
-    def label(self, iter_setting: Setting, value: Any):
-        if isinstance(value, int):
-            modified = value
-        elif isinstance(value, float):
-            modified = str(int(value*1e3))+"keV"
-        else:
-            print("cant find label for that value type")
-        return iter_setting.name+modified
+
 
     def iter_analysis_param(
             self,

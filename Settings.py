@@ -57,9 +57,9 @@ class SettingsClass:
         self.rainier_path =Path(r"C:\RAINIER")
 
         #für zuhause
-        #self.this_dir = Path(r"C:\FAIRIES output")
+        self.this_dir = Path(r"C:\FAIRIES output")
         #für uni
-        self.this_dir = Path(r"C:\Users\Raphael\Desktop\FluctuationAnalysis\FAIRIES output")
+        #self.this_dir = Path(r"C:\Users\Raphael\Desktop\FluctuationAnalysis\FAIRIES output")
 
         self.std_path = self.this_dir / "fluctuation_analysis"
         self.run_folder = self.this_dir / "RUNS"
