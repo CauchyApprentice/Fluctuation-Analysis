@@ -125,6 +125,7 @@ class FluctuationAnalysisPlot:
             data_energy: list,
             *,
             run: Run = None,
+            name: str = ""
             ) -> None:
         if run is not None:
             label = str(int(run.settings[Setting.g_nEvent]))+" events"
