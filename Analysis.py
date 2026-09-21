@@ -42,34 +42,60 @@ class FluctuationAnalysisPlot:
             show_full: bool = False,
             run: Run = None
             ) -> None:
-        plt.step(energy, fluct_data, lw=self.linewidth)
         if run is not None:
-            energy, data_dict = extract.get_fluct_data_spin(run)
-            plt.step(energy, data_dict[-1], color="grey", alpha=0.2)
+            label = str(int(run.settings[Setting.g_nEvent]))+" events"
+        else:
+            label = ""
+        plt.step(energy, fluct_data, lw=self.linewidth, label=label)
+        if run is not None:
+            energy, data = extract.get_fluct_data(run)
+            plt.plot(energy, data, color="grey", alpha=0.5)
         plt.xlabel("E / MeV")
         plt.ylabel("Total Absorption Spectrum")
+        plt.legend()
         plt.title("Experimental spectrum")
         if not show_full:
-            plt.ylim(0,np.percentile(fluct_data, [0,99.8])[1])
+            pass
+            #plt.ylim(0,np.percentile(fluct_data, [0,99.8])[1])
 
-    def smooth(self, energy: list, fluct_data: list, fine: list, rough: list) -> None:
-        plt.plot(energy, fluct_data)
+    def smooth(
+            self,
+            energy: list,
+            fluct_data: list,
+            fine: list,
+            rough: list,
+            *,
+            run: Run = None
+            ) -> None:
+        if run is not None:
+            label = str(int(run.settings[Setting.g_nEvent]))+" events"
+        else:
+            label = ""
+        plt.plot(energy, fluct_data, label=label)
         plt.plot(energy, fine)
         plt.plot(energy, rough)
         plt.xlabel("E in MeV")
         plt.ylabel("Coincidence")
+        plt.legend()
         plt.title("Rough/fine smoothing")
 
     def stationary(
             self,
             energy: list,
             stationary: list,
+            *,
+            run: Run = None
             ) -> None:
         plt.xlabel("E in MeV")
         plt.ylabel("'relative fluctuations'")
         plt.title("Stationary spectrum")
         plt.ylim(0.5,1.5)
-        plt.plot(energy, stationary)
+        if run is not None:
+            label = str(int(run.settings[Setting.g_nEvent]))+" events"
+        else:
+            label = ""
+        plt.plot(energy, stationary, label=label)
+        plt.legend()
 
     def autocorrelation(self, eps_start, eps_end, eps_step, energy, full_data, save_path, file_name, series = True, *, interval_low = 5, interval_high = 6):
         epsilons = np.arange(eps_start,eps_end,eps_step)
@@ -84,31 +110,37 @@ class FluctuationAnalysisPlot:
             plt.savefig(save_path / Settings.folder_autocorr_name / file_name, dpi=300)
             plt.close()
 
+    def pop_dist_comp(self, run: Run, data_energy, nld):
+        if run is not None:
+            pop_dist = sim.pop.dist_normed(data_energy, Settings.Q_76Ga)
+            scalar = 1e3/max(pop_dist)
+            
+            scaled_pop_dist = [prob * scalar for prob in pop_dist]
+            plt.plot(data_energy, scaled_pop_dist, color="grey", alpha=0.8, linestyle="-.") #JUST TEMPORARY THE Q VALUE REMEMBER
+
     def comparison(
             self,
             energy_range: list,
             nld: list,
             data_energy: list,
             *,
-            run: Run = None
+            run: Run = None,
             ) -> None:
         if run is not None:
-            pop_dist = sim.pop.dist_normed(data_energy, Settings.Q_76Ga)
-            nld_max = 0
-            for nldval in nld:
-                if nldval != np.nan and nldval > nld_max:
-                    nld_max = nldval
-            scalar = nld_max/max(pop_dist)
-            
-            scaled_pop_dist = [prob * scalar for prob in pop_dist]
-            plt.plot(data_energy, scaled_pop_dist, color="grey", alpha=0.8) #JUST TEMPORARY THE Q VALUE REMEMBER
-        plt.plot(data_energy, [func.rho(e) for e in data_energy])
+            label = str(int(run.settings[Setting.g_nEvent]))+" events"
+        else:
+            label = ""
+        self.pop_dist_comp(run, data_energy, nld)
+        plt.plot(data_energy, [func.rho(e) for e in data_energy], color="blue")
         plt.ylim(1,1e7)
-        plt.scatter(energy_range, nld, color="purple", facecolors="none")
+        plt.scatter(energy_range, nld, marker="^", label=label)
+        plt.legend()
         plt.yscale("log")
         plt.title("Original NLD and extracted NLD")
         plt.xlabel("E / MeV")
         plt.ylabel("#levels per MeV")
+
+    
         
 
     def helper_seriesplot(
@@ -130,9 +162,9 @@ class FluctuationAnalysisPlot:
             case FaStep.fluct:
                 self.fluct_data(fluct_energy, fluct_data, run=run)
             case FaStep.smoothing:
-                self.smooth(fluct_energy, fluct_data, fine, rough)
+                self.smooth(fluct_energy, fluct_data, fine, rough, run=run)
             case FaStep.stationary:
-                self.stationary(fluct_energy, stationary)
+                self.stationary(fluct_energy, stationary, run=run)
             case FaStep.autocorr:
                 pass
             case FaStep.comparison:
@@ -147,17 +179,24 @@ class FluctuationAnalysisPlot:
 
     def create(
             self,
-            fa_collection: list[FluctuationAnalysisResult],
+            fa: FluctuationAnalysisResult | list[FluctuationAnalysisResult],
             *,
             file_name: str = "unnamed_fluc_ana",
             figsize: tuple[float, float] = None,
-            run: Run = None
+            run: Run | list[Run] = None
             ) -> None:
+        if isinstance(fa, FluctuationAnalysisResult):
+            single = True
+        else:
+            single = False
         self.init_folders()
         for step in FaStep:
             plt.figure()
-            for fa in fa_collection:
+            if single:
                 self.helper_seriesplot(fa, step, file_name=file_name, run=run)
+            else:
+                for k in range(len(fa)):
+                    self.helper_seriesplot(fa[k], step, file_name=file_name, run=run[k])
             plt.savefig(Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (file_name+".png"), dpi = 300)
             plt.close()
 

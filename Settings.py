@@ -55,13 +55,20 @@ class SettingsClass:
 
         self.rainier_sample_folder = Path(r"C:\RAINIER\sample_folder")
         self.rainier_path =Path(r"C:\RAINIER")
-        self.this_dir = Path(r"C:\FAIRIES output")
+
+        #für zuhause
+        #self.this_dir = Path(r"C:\FAIRIES output")
+        #für uni
+        self.this_dir = Path(r"C:\Users\Raphael\Desktop\FluctuationAnalysis\FAIRIES output")
+
         self.std_path = self.this_dir / "fluctuation_analysis"
         self.run_folder = self.this_dir / "RUNS"
         self.root_file_folder = self.this_dir / "ROOT_files"
         self.settings_file_path = self.root_file_folder / "settings.h"
         self.popfile_path = self.root_file_folder / self.popfile_name
         self.parallel_path = self.this_dir / "PARALLEL"
+
+  
 
         self.folder_fluct_name = "fluct input"
         self.folder_smoothing_name = "smoothing"

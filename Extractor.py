@@ -69,7 +69,7 @@ class Extractor:
         energy_axis = np.array(sim.pop.ex_energy_list(Settings.Q_76Ga, energy_bins))
         return np.histogram2d(JI_int, ExI, bins=[spin_axis, energy_axis])
 
-    def get_fluct_data_spin(self, run: Run, *, plot: bool = False) -> tuple[np.ndarray, dict[int, np.ndarray]]:
+    def get_fluct_data(self, run: Run, *, plot: bool = False) -> tuple[np.ndarray, np.ndarray]:
         counts, spin_edges, energy_edges = self.pop_EJ(run)
         if plot:
             plt.figure()
@@ -84,11 +84,10 @@ class Extractor:
         for k in range(len(spins)):
             spin = spins[k]
             fluct_data_dict[int(spin)] = counts[k].tolist()
-        return (energy.tolist(), fluct_data_dict)
+        return (energy.tolist(), fluct_data_dict[-1])
 
     def spectrum_smeared(self, run: Run, *, exp_res: float = 0.001, plot: bool = False) -> tuple[list, list]:
-        energy, fluct_data_dict = self.get_fluct_data_spin(run, plot=plot)
-        data = fluct_data_dict[-1]
+        energy, data = self.get_fluct_data(run, plot=plot)
         if exp_res == 0:
             return energy, data
         return energy, self.apply_resolution(energy, data, exp_res)
