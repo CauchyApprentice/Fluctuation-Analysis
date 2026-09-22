@@ -47,7 +47,7 @@ class EXCI(IntEnum):
     spread = auto()
     full_rxn = auto()
 
-class SettingsClass:
+class Settings:
     def __init__(self):
         self.Q_76Ga = 6.9163
 
@@ -165,7 +165,7 @@ class SettingsClass:
             }
         }
 
-    def file_setup(self):
+    def file_setup(self) -> None:
         self.this_dir.mkdir(exist_ok=True, parents=True)
         self.std_path.mkdir(exist_ok=True, parents=True)
         self.root_file_folder.mkdir(exist_ok=True, parents=True)
@@ -220,8 +220,6 @@ class SettingsClass:
                     text = self.replace_def(text, key, self.parameter[key])
             f.write(text)
 
-Settings = SettingsClass()
-parameter = Settings.parameter
-Settings.file_setup()
-
-#Settings.apply_settings()
+settings = Settings()
+parameter = settings.parameter
+settings.file_setup()

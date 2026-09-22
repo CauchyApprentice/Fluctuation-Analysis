@@ -1,4 +1,4 @@
-from Settings import Setting, Settings, parameter, NLD
+from Settings import Setting, settings, parameter, NLD
 import subprocess
 from enum import IntEnum, auto
 from pathlib import Path
@@ -20,11 +20,11 @@ class Run:
     level_data: tuple[list[float],list[list[float]]]
     root_tree: dict[str, np.ndarray[float]]
 
-class SimTool:
+class Simulation:
     def __init__(self):
         self.parallel = self.Parallel(self)
         self.pop = self.Population(self)
-        self.run_path = Settings.std_path / "runs"
+        self.run_path = settings.std_path / "runs"
         self.settings_file_name = "settings"
         self.createdPopFile_stdname = "\"createdPopFile.dat\""
         self.std_popFileName = "\"Ge76_popEQUAL.dat\""
@@ -89,27 +89,27 @@ class SimTool:
         if parameter_ref is None:
             parameter_ref = parameter
         if execution_path is None:
-            execution_path = Settings.root_file_folder
+            execution_path = settings.root_file_folder
         if parameter_ref[Setting.fluct_bin] != parameter_ref[Setting.g_nConEBin]:
             print("Simple Run: Simulated and fluct binning arent identical.")
         execution_path.mkdir(parents=True, exist_ok=True)
         while True:
             try:
                 if do_apply_settings:
-                    Settings.apply_settings(print_setting=print_setting,parameter_ref=parameter_ref,execution_path=execution_path)
+                    settings.apply_settings(print_setting=print_setting,parameter_ref=parameter_ref,execution_path=execution_path)
                 if not (execution_path / "settings.h").exists():
-                    shutil.copy(Settings.settings_file_path, execution_path / "settings.h")
+                    shutil.copy(settings.settings_file_path, execution_path / "settings.h")
                 break
             except PermissionError:
                 print("Tried to copy settings.h to execution path and failed.")
                 time.sleep(2)
-        return subprocess.run(["cmd", "/c", "root", str(Settings.rainier_path / "modRAINIER.C")], capture_output=True, text=True, cwd=execution_path).stdout
+        return subprocess.run(["cmd", "/c", "root", str(settings.rainier_path / "modRAINIER.C")], capture_output=True, text=True, cwd=execution_path).stdout
 
     def run_simulation(self, *, save_path: Path = None, file_name: str = None, print_setting: bool = True, execution_path: Path = None) -> None:
         if file_name == None:
             file_name = "unnamed_run"
         if save_path == None:
-            save_path = Settings.std_path
+            save_path = settings.std_path
         else:
             save_path.mkdir(exist_ok = True, parents=True)
         current_run_folder = save_path / file_name
@@ -120,7 +120,7 @@ class SimTool:
         with open(current_run_folder / (self.settings_file_name+".txt"), "w") as file:
             for key in parameter:
                 file.write(Setting(key).name+" : "+str(parameter[key])+"\n")
-        run_path = Settings.root_file_folder / "Run0001.root"
+        run_path = settings.root_file_folder / "Run0001.root"
         run_path.replace(current_run_folder / (file_name+".root"))
 
     def run_simulation_then_read(self, save_path: Path = None, file_name: str = None, *, print_setting: bool = True, execution_path: Path = None) -> Run:
@@ -150,28 +150,28 @@ class SimTool:
 
     class Parallel:
         def __init__(self, sim):
-            self.sim: SimTool = sim
+            self.sim: Simulation = sim
             self.subfolder_name = "PARALLEL"
 
         def clear_parallel_folder(self):
-            shutil.rmtree(Settings.parallel_path)
+            shutil.rmtree(settings.parallel_path)
 
         def run_parallels(self, *, events: int, max_workers: int = 10, save_path: Path = None) -> None:
             '''
             Runs a simulation with a given event number by redistributing the events across parallel simulation on different cpu cores.
             '''
             if save_path is None:
-                save_path = Settings.this_dir
+                save_path = settings.this_dir
             partial_events = events // max_workers
             save_folder = save_path / self.subfolder_name
             save_folder.mkdir(parents=True, exist_ok=True)
             worker_folder_name = lambda worker: "Worker "+str(worker+1)
             parameter[Setting.g_nEvent] = partial_events
-            Settings.apply_settings(print_setting=False)
+            settings.apply_settings(print_setting=False)
             for worker in range(max_workers):
                 worker_folder = save_folder / worker_folder_name(worker)
                 worker_folder.mkdir()
-                shutil.copy2(Settings.settings_file_path, worker_folder / "settings.h")
+                shutil.copy2(settings.settings_file_path, worker_folder / "settings.h")
             with ProcessPoolExecutor(max_workers=max_workers) as executor:
                 futures = [executor.submit(
                     sim.simple_run,
@@ -184,7 +184,7 @@ class SimTool:
                 for future in futures:
                     future.result()
             parameter[Setting.g_nEvent] = events
-            Settings.apply_settings(print_setting=False)
+            settings.apply_settings(print_setting=False)
 
         def collect_root_files(self, *, save_path: Path) -> None:
             parallel_folder = save_path / self.subfolder_name
@@ -227,7 +227,7 @@ class SimTool:
 
         def save_as_readable(self, *, events: int, root_source: Path, destination: Path = None):
             if destination is None:
-                destination = Settings.run_folder
+                destination = settings.run_folder
             this_run = destination / ("g_nEvent_"+str(events))
             this_run.mkdir(exist_ok=True, parents=True)
             run_text = ""
@@ -246,7 +246,7 @@ class SimTool:
                 max_workers: int,
                 save_path: Path
         ):
-            parallel_path = Settings.this_dir
+            parallel_path = settings.this_dir
             self.run_parallels(events=events,max_workers=max_workers,save_path=parallel_path)
             self.collect_root_files(save_path=parallel_path)
             self.add_root_files(save_path=parallel_path)
@@ -259,7 +259,7 @@ class SimTool:
 
     def iterate(self, param: Setting, param_range: list, *, save_path: Path = None) -> None:
         if save_path == None:
-            save_path = Settings.std_path
+            save_path = settings.std_path
         param0 = parameter[param]
         for k in range(len(param_range)):
             print(Setting(param).name+": "+str(param_range[k]))
@@ -346,7 +346,7 @@ class SimTool:
 
     def iterate_grid(self, params, *, save_path = None):
         if save_path == None:
-            save_path = Settings.std_path / "runs"
+            save_path = settings.std_path / "runs"
         n = len(params)
         iter_lim = np.zeros(n, dtype=int)
         iter_state = np.zeros(n, dtype=int)
@@ -375,7 +375,7 @@ class SimTool:
 
     class Population:
         def __init__(self, sim):
-            self.sim: SimTool = sim
+            self.sim: Simulation = sim
 
         def bin_width(self, q: float, energy_bins: float) -> float:
             return q / (energy_bins - 1)
@@ -436,9 +436,9 @@ class SimTool:
             h = self.bin_width(q, energy_bins)
             parameter[Setting.g_nExPopI] = energy_bins
             parameter[Setting.g_dExRes] = h
-            parameter[Setting.popFile_name] = f'"{str(Settings.popfile_path).replace("\\", "\\\\")}"'
+            parameter[Setting.popFile_name] = f'"{str(settings.popfile_path).replace("\\", "\\\\")}"'
             parameter[Setting.g_dExIMax] = q
-            Settings.apply_settings(print_setting=False)
+            settings.apply_settings(print_setting=False)
 
             
             for k in range(energy_bins):
@@ -479,11 +479,11 @@ class SimTool:
                 linestr += "\n"
                 lines[i] = linestr
 
-            Settings.popfile_path.parent.mkdir(exist_ok=True, parents=True)
-            with open(Settings.popfile_path, "w") as f:
+            settings.popfile_path.parent.mkdir(exist_ok=True, parents=True)
+            with open(settings.popfile_path, "w") as f:
                 f.writelines(lines)
 
-sim = SimTool()
+sim = Simulation()
 
 #sim.make_pop_file(7.5, 500)
 #sim.make_pop_file()

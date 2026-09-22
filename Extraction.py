@@ -3,8 +3,8 @@ from enum import IntEnum, auto
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import uproot
-from Settings import Setting, Settings, parameter
-from SimTool import Run, sim
+from Settings import Setting, settings, parameter
+from Simulation import Run, sim
 from scipy.stats import norm
 
 class Extractor:
@@ -31,7 +31,7 @@ class Extractor:
             self,
             run: Run
     ) -> tuple:
-        q = Settings.Q_76Ga
+        q = settings.Q_76Ga
         energy_bins = 7000
         ExI = run.root_tree["ExI"]
         bin_energy = lambda k: q * k / (energy_bins - 1)
@@ -66,7 +66,7 @@ class Extractor:
         spin_min = JI_int.min()
         spin_max = JI_int.max()
         spin_axis = np.arange(spin_min, spin_max + 2*spin_spacing, spin_spacing) #2*spin_spacing works even though 1* should work no?
-        energy_axis = np.array(sim.pop.ex_energy_list(Settings.Q_76Ga, energy_bins))
+        energy_axis = np.array(sim.pop.ex_energy_list(settings.Q_76Ga, energy_bins))
         return np.histogram2d(JI_int, ExI, bins=[spin_axis, energy_axis])
 
     def get_fluct_data(self, run: Run, *, plot: bool = False) -> tuple[np.ndarray, np.ndarray]:

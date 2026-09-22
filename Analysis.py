@@ -4,13 +4,13 @@ from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
 from pathlib import Path
 import subprocess
-from Settings import Settings, Setting, parameter
+from Settings import settings, Setting, parameter
 from Func import func
 from dataclasses import dataclass
 from typing import Any
 from functools import singledispatchmethod
-from SimTool import Run, sim
-from Extractor import extract
+from Simulation import Run, sim
+from Extraction import extract
 
 class FaStep(IntEnum):
     fluct = auto()
@@ -95,12 +95,12 @@ class FluctuationAnalysisPlot:
         plt.title("Autocorrelation function")
         plt.xlim(0,0.5) 
         if not series:
-            plt.savefig(save_path / Settings.folder_autocorr_name / file_name, dpi=300)
+            plt.savefig(save_path / settings.folder_autocorr_name / file_name, dpi=300)
             plt.close()
 
     def pop_dist_comp(self, run: Run, data_energy, nld):
         if run is not None:
-            pop_dist = sim.pop.dist_normed(data_energy, Settings.Q_76Ga)
+            pop_dist = sim.pop.dist_normed(data_energy, settings.Q_76Ga)
             scalar = 1e3/max(pop_dist)
             
             scaled_pop_dist = [prob * scalar for prob in pop_dist]
@@ -154,11 +154,11 @@ class FluctuationAnalysisPlot:
                 self.comparison(energy_range, extract_nld, fluct_energy, run=run, label=label)
 
     def init_folders(self) -> None:
-        (Settings.std_path/Settings.folder_fluct_name).mkdir(exist_ok=True, parents=True)
-        (Settings.std_path/Settings.folder_smoothing_name).mkdir(exist_ok=True, parents=True)
-        (Settings.std_path/Settings.folder_stationary_name).mkdir(exist_ok=True, parents=True)
-        (Settings.std_path/Settings.folder_autocorr_name).mkdir(exist_ok=True, parents=True)
-        (Settings.std_path/Settings.folder_comparison_name).mkdir(exist_ok=True, parents=True)
+        (settings.std_path/settings.folder_fluct_name).mkdir(exist_ok=True, parents=True)
+        (settings.std_path/settings.folder_smoothing_name).mkdir(exist_ok=True, parents=True)
+        (settings.std_path/settings.folder_stationary_name).mkdir(exist_ok=True, parents=True)
+        (settings.std_path/settings.folder_autocorr_name).mkdir(exist_ok=True, parents=True)
+        (settings.std_path/settings.folder_comparison_name).mkdir(exist_ok=True, parents=True)
 
     def label(self, iter_setting: Setting, value: Any):
         if func.isint(value):
@@ -185,7 +185,7 @@ class FluctuationAnalysisPlot:
                 plt.figure()
                 self.helper_seriesplot(fa, step, label=self.label(iter_setting, run.settings[iter_setting]), run=run)
                 plt.savefig(
-                    Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (self.label(iter_setting,run.settings[iter_setting])+".png"),
+                    settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (self.label(iter_setting,run.settings[iter_setting])+".png"),
                     dpi = 300,
                     bbox_inches = "tight")
                 plt.close()
@@ -197,7 +197,7 @@ class FluctuationAnalysisPlot:
                     fa = run_fa[k]
                     self.helper_seriesplot(fa, step, label=self.label(iter_setting,run.settings[iter_setting]), run=run)
                 plt.savefig(
-                    Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"),
+                    settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"),
                     dpi = 300,
                     bbox_inches = "tight")
                 plt.close()
@@ -225,7 +225,7 @@ class FluctuationAnalysisPlot:
                     plt.figure()
                     self.helper_seriesplot(fa, step, label=self.label(iter_setting,param), run=run)
                     plt.savefig(
-                        Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (self.label(iter_setting,param)+".png"),
+                        settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (self.label(iter_setting,param)+".png"),
                         dpi = 300,
                         bbox_inches = "tight")
                     plt.close()
@@ -239,7 +239,7 @@ class FluctuationAnalysisPlot:
                 self.helper_seriesplot(fa, step, label=self.label(iter_setting,param), run=run, fluct_data_hide_exact_data=True)
                 parameter[iter_setting] = param0
             plt.savefig(
-                Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"),
+                settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / ("combined"+".png"),
                 dpi = 300,
                 bbox_inches = "tight")
             plt.close()
@@ -264,16 +264,16 @@ class FluctuationAnalysisPlot:
             else:
                 for k in range(len(fa)):
                     self.helper_seriesplot(fa[k], step, file_name=file_name, run=run[k])
-            plt.savefig(Settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (file_name+".png"), dpi = 300)
+            plt.savefig(settings.std_path / FluctuationAnalysis.fa_step_to_folder_name[step] / (file_name+".png"), dpi = 300)
             plt.close()
 
 class FluctuationAnalysis:
     fa_step_to_folder_name: dict[FaStep, str] = {
-        FaStep.fluct : Settings.folder_fluct_name,
-        FaStep.smoothing : Settings.folder_smoothing_name,
-        FaStep.stationary : Settings.folder_stationary_name,
-        FaStep.autocorr : Settings.folder_autocorr_name,
-        FaStep.comparison : Settings.folder_comparison_name
+        FaStep.fluct : settings.folder_fluct_name,
+        FaStep.smoothing : settings.folder_smoothing_name,
+        FaStep.stationary : settings.folder_stationary_name,
+        FaStep.autocorr : settings.folder_autocorr_name,
+        FaStep.comparison : settings.folder_comparison_name
     }
 
     def __init__(self):
