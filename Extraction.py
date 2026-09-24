@@ -7,7 +7,7 @@ from Settings import Setting, settings, parameter
 from Simulation import Run, sim
 from scipy.stats import norm
 
-class Extractor:
+class Extraction:
     def __init__(self):
         pass
 
@@ -93,4 +93,4 @@ class Extractor:
         return energy, self.apply_resolution(energy, data, exp_res)
         
 
-extract = Extractor()
+extract = Extraction()

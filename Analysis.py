@@ -163,7 +163,7 @@ class FluctuationAnalysisPlot:
     def label(self, iter_setting: Setting, value: Any):
         if func.isint(value):
             modified = f"{value:,}"
-        elif isinstance(value, float):
+        elif func.isfloat(value):
             modified = str(int(value*1e3))+"keV"
         else:
             print("cant find label for that value type")
@@ -213,7 +213,7 @@ class FluctuationAnalysisPlot:
             iter_setting: Setting,
             iter_range: list,
             *,
-            plot_single: bool = False
+            plot_single: bool = True
             ) -> None:
         self.init_folders()
         if plot_single:
@@ -330,8 +330,10 @@ class FluctuationAnalysis:
         ) -> FluctuationAnalysisResult:
 
         bin_width = self.get_energy_width(energy)
-        sigma_fine = 0.003
-        sigma_rough = 0.005
+        # sigma_fine = 0.003
+        # sigma_rough = 0.005
+        sigma_fine = parameter[Setting.exp_resolution] / 3
+        sigma_rough = sigma_fine * 5
 
         fine, rough = self.get_smooth(fluct_data, bin_width, sigma_fine, sigma_rough)
         stationary = fine/rough

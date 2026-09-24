@@ -9,6 +9,16 @@ class Func:
     def isint(self,val):
         try:
             int(val)
+            if val == int(val):
+                return True
+            else:
+                return False
+        except:
+            return False
+
+    def isfloat(self, val):
+        try:
+            float(val)
             return True
         except:
             return False
